@@ -13,3 +13,7 @@ def conv_block(in_ch, out_ch, ker=3, pad=1):
         nn.ReLU(inplace=True)
     )
     return block
+
+class UNetResnet(nn.module):
+    def __init__(self, n_classes):
+        #
