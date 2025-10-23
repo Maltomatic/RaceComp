@@ -27,7 +27,6 @@ class Resnet_upscaler(nn.Module):
         super().__init__()
         self.resnet = resnet
 
-        #midpoints
         self.entry = nn.Sequential(self.resnet.conv1,
                                   self.resnet.bn1,
                                   self.resnet.relu,
@@ -56,54 +55,48 @@ class Resnet_upscaler(nn.Module):
     def forward(self, x):
         #encoder
         x1 = self.entry(x)
-        print("x1 shape:", x1.shape)
+        # print("x1 shape:", x1.shape)
         x2 = self.enc1(x1)
-        print("x2 shape:", x2.shape)
+        # print("x2 shape:", x2.shape)
         x3 = self.enc2(x2)
-        print("x3 shape:", x3.shape)
+        # print("x3 shape:", x3.shape)
         x3 = self.pad(x3)
         x4 = self.enc3(x3)
-        print("x4 shape:", x4.shape)
+        # print("x4 shape:", x4.shape)
         x5 = self.enc4(x4)
-        print("x5 shape:", x5.shape)
-        print("---- Decoder shapes ----")
+        # print("x5 shape:", x5.shape)
+        # print("---- Decoder shapes ----")
 
         #decode with encode outputs
         d4 = self.dec4(x5)
-        print("d4 shape:", d4.shape)
-        print("x4 shape:", x4.shape)
+        # print("d4 shape:", d4.shape)
+        # print("x4 shape:", x4.shape)
         d4c = torch.cat([d4, x4], dim=1)
-        print("    d4 concatted shape:", d4c.shape)
+        # print("    d4 concatted shape:", d4c.shape)
         d4 = self.conv_up4(d4c)
-        print("    d4 after conv shape:", d4.shape)
+        # print("    d4 after conv shape:", d4.shape)
 
         d3 = self.dec3(d4)
-        print("d3 shape:", d3.shape)
-        print("x3 shape:", x3.shape)
+        # print("d3 shape:", d3.shape)
+        # print("x3 shape:", x3.shape)
         d3c = torch.cat([d3, x3], dim=1)
-        print("    d3 concatted shape:", d3c.shape)
+        # print("    d3 concatted shape:", d3c.shape)
         d3 = self.conv_up3(d3c)
-        print("    d3 after conv shape:", d3.shape)
+        # print("    d3 after conv shape:", d3.shape)
 
         d2 = self.dec2(d3)
-        print("d2 shape:", d2.shape)
-        # print("x2 shape:", x2.shape)
-        # d2c = torch.cat([d2, x2], dim=1)
-        # print("    d2 concatted shape:", d2c.shape)
+        # print("d2 shape:", d2.shape)
         d2 = self.conv_up2(d2)
-        print("    d2 after conv shape:", d2.shape)
+        # print("    d2 after conv shape:", d2.shape)
         
         d1 = self.dec1(d2)
-        print("d1 shape:", d1.shape)
-        # print("x1 shape:", x1.shape)
-        # d1c = torch.cat([d1, x1], dim=1)
-        # print("    d1 concatted shape:", d1c.shape)
+        # print("d1 shape:", d1.shape)
         d1 = self.conv_up1(d1)
-        print("    d1 after conv shape:", d1.shape)
+        # print("    d1 after conv shape:", d1.shape)
         
         out = self.exit(d1)
         out = self.resize(out)
-        print("final out shape:", out.shape)
+        # print("final out shape:", out.shape)
         return out
 # Example
 if __name__ == "__main__":
