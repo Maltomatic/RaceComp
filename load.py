@@ -26,38 +26,42 @@ class FairFaceDataset(Dataset):
         self.labels = torch.nn.functional.one_hot(torch.tensor(cat).long(), num_classes=class_count)
         # print(self.labels.shape)
         # print(self.labels)
+        if(transform is None):
+            transform = torchvision.transforms.Compose([
+                torchvision.transforms.Resize((112,112)),
+                torchvision.transforms.ConvertImageDtype(torch.float),
+                torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #imagenet parameters
+            ])
         self.transform = transform
+        self.augs = [
+            None,
+            torchvision.transforms.RandomHorizontalFlip(),
+            torchvision.transforms.RandomVerticalFlip(),
+            torchvision.transforms.RandomRotation(degrees=179),
+            torchvision.transforms.RandomPerspective(),
+            torchvision.transforms.RandomAffine(degrees=0, translate=(0.2,0.2))
+        ]
 
     def __len__(self):
-        return len(self.labels)
+        return len(self.labels)*len(self.augs)
 
     def __getitem__(self, idx):
-        img_file = os.path.join(self.image_path, self.file_path.iloc[idx])
+        img_idx = idx // len(self.augs)
+        aug_idx = idx % len(self.augs)
+
+        img_file = os.path.join(self.image_path, self.file_path.iloc[img_idx])
         image = decode_image(img_file, mode = "RGB")
         # print(image.shape)
         # print(image)
-        label_str = self.labels_raw.iloc[idx]
-        label = self.labels[idx]
+
+        if aug_idx != 0:
+            augmentation = self.augs[aug_idx]
+            image = augmentation(image)
+
+        label_str = self.labels_raw.iloc[img_idx]
+        label = self.labels[img_idx]
         downsample = None
         if self.transform:
             downsample = self.transform(image)
 
         return downsample, image, label, label_str
-    
-transforms = torchvision.transforms.Compose([
-    torchvision.transforms.Resize((112,112)),
-    torchvision.transforms.ConvertImageDtype(torch.float),
-    torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #imagenet parameters
-])
-train_dataset = FairFaceDataset(train_image_path, train_label_path, transform=transforms)
-train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-
-val_dataset = FairFaceDataset(val_image_path, val_label_path, transform=transforms)
-val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
-
-for images, src, labels, label_str in train_loader:
-    print("Batch of testing images shape: ", images.shape)
-    print("Batch of source images shape: ", src.shape)
-    print("Batch of labels shape: ", labels.shape)
-    print("Batch of label strings: ", len(label_str))
-    break
