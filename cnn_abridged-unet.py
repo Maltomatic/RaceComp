@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torchvision
 from torchsummary import summary
-resnet = torchvision.models.resnet.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V2)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Availability: ", device)
@@ -25,7 +24,7 @@ class Resnet_upscaler(nn.Module):
     def __init__(self, output_size=(224,224)):
         "Model structure: take 3*112*112 tensor, upscale to 3*224*224 tensor"
         super().__init__()
-        self.resnet = resnet
+        self.resnet = torchvision.models.resnet.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V2)
 
         self.entry = nn.Sequential(self.resnet.conv1,
                                   self.resnet.bn1,

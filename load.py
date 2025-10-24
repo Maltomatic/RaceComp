@@ -3,7 +3,7 @@ import os
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
-import torch
+import torch, torchvision
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import decode_image
 
@@ -24,8 +24,8 @@ class FairFaceDataset(Dataset):
         cat = pd.Series(cat.codes)
         # One-hot encode the labels
         self.labels = torch.nn.functional.one_hot(torch.tensor(cat).long(), num_classes=class_count)
-        print(self.labels.shape)
-        print(self.labels)
+        # print(self.labels.shape)
+        # print(self.labels)
         self.transform = transform
 
     def __len__(self):
@@ -36,14 +36,28 @@ class FairFaceDataset(Dataset):
         image = decode_image(img_file, mode = "RGB")
         # print(image.shape)
         # print(image)
-        label = self.labels_raw.iloc[idx]
+        label_str = self.labels_raw.iloc[idx]
+        label = self.labels[idx]
+        downsample = None
         if self.transform:
-            image = self.transform(image)
+            downsample = self.transform(image)
 
-        return image, label
+        return downsample, image, label, label_str
     
-train_dataset = FairFaceDataset(train_image_path, train_label_path)
+transforms = torchvision.transforms.Compose([
+    torchvision.transforms.Resize((112,112)),
+    torchvision.transforms.ConvertImageDtype(torch.float),
+    torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #imagenet parameters
+])
+train_dataset = FairFaceDataset(train_image_path, train_label_path, transform=transforms)
 train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
 
-val_dataset = FairFaceDataset(val_image_path, val_label_path)
+val_dataset = FairFaceDataset(val_image_path, val_label_path, transform=transforms)
 val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+
+for images, src, labels, label_str in train_loader:
+    print("Batch of testing images shape: ", images.shape)
+    print("Batch of source images shape: ", src.shape)
+    print("Batch of labels shape: ", labels.shape)
+    print("Batch of label strings: ", len(label_str))
+    break
