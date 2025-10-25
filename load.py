@@ -14,7 +14,7 @@ train_label_path = "./dataset/fairface_label_train.csv"
 val_label_path = "./dataset/fairface_label_val.csv"
 
 class FairFaceDataset(Dataset):
-    def __init__(self, image_path, label_path, transform=None, normalize=False):
+    def __init__(self, image_path, label_path, transform=None, normalize=True):
         self.image_path = image_path
         self.file_path = pd.read_csv(label_path)["file"]
         self.labels_raw = pd.read_csv(label_path)["race"]
