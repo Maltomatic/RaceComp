@@ -5,6 +5,7 @@
 - https://idiotdeveloper.com/step-by-step-guide-to-resnet50-unet-in-tensorflow/
 - https://www.codegenes.net/blog/unet-with-resnet-backbone-pytorch/
 - https://blog.csdn.net/weixin_54255111/article/details/125625991
+- https://arxiv.org/pdf/2111.13905
 
 ## ViT references
 - 

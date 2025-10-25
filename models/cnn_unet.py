@@ -11,10 +11,10 @@ class conv_block(nn.Module):
         super().__init__()
         self.block = nn.Sequential(
             nn.Conv2d(in_ch, out_ch, kernel_size=ker, padding=pad, stride=1),
-            nn.BatchNorm2d(out_ch,),
+            # nn.BatchNorm2d(out_ch,),
             nn.SiLU(inplace=True),
             nn.Conv2d(out_ch, out_ch, kernel_size=ker, padding=pad, stride=1),
-            nn.BatchNorm2d(out_ch),
+            # nn.BatchNorm2d(out_ch),
             nn.SiLU(inplace=True)
         )
     def forward(self, x):
