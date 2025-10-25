@@ -1,6 +1,5 @@
 import pandas as pd
 import os
-from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 import torch, torchvision
@@ -15,7 +14,7 @@ train_label_path = "./dataset/fairface_label_train.csv"
 val_label_path = "./dataset/fairface_label_val.csv"
 
 class FairFaceDataset(Dataset):
-    def __init__(self, image_path, label_path, transform=None):
+    def __init__(self, image_path, label_path, transform=None, normalize=True):
         self.image_path = image_path
         self.file_path = pd.read_csv(label_path)["file"]
         self.labels_raw = pd.read_csv(label_path)["race"]
@@ -26,13 +25,19 @@ class FairFaceDataset(Dataset):
         self.labels = torch.nn.functional.one_hot(torch.tensor(cat).long(), num_classes=class_count)
         # print(self.labels.shape)
         # print(self.labels)
+
+        norm = None
+        if(normalize):
+            norm = torchvision.transforms.Compose([
+                    torchvision.transforms.ConvertImageDtype(torch.float),
+                    torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #imagenet parameters
+                ])
+        else:
+            norm = torchvision.transforms.ConvertImageDtype(torch.float)
         if(transform is None):
-            transform = torchvision.transforms.Compose([
-                torchvision.transforms.Resize((112,112)),
-                torchvision.transforms.ConvertImageDtype(torch.float),
-                torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]) #imagenet parameters
-            ])
+            transform = torchvision.transforms.Resize((112, 112))
         self.transform = transform
+        self.norm = norm
         self.augs = [
             None,
             torchvision.transforms.RandomHorizontalFlip(),
@@ -57,11 +62,20 @@ class FairFaceDataset(Dataset):
         if aug_idx != 0:
             augmentation = self.augs[aug_idx]
             image = augmentation(image)
+            print(f"Applied augmentation: {augmentation}")
 
         label_str = self.labels_raw.iloc[img_idx]
         label = self.labels[img_idx]
-        downsample = None
-        if self.transform:
-            downsample = self.transform(image)
+        downsample = self.transform(image)
+        downsample = self.norm(downsample)
+        image = self.norm(image)
+        print("Debug: After norm:", downsample.shape, downsample.dtype)
+        print("Debug: Before transform:", image.shape, image.dtype)
+        if(downsample.shape[1] != 112 or downsample.shape[2] != 112):
+            downsample = torchvision.transforms.Resize((112,112))(downsample)
+        # if not float tensor:
+        if downsample.dtype != torch.float:
+            downsample = torchvision.transforms.ConvertImageDtype(torch.float)(downsample)
+        print("Debug: After transform:", downsample.shape, downsample.dtype)
 
         return downsample, image, label, label_str

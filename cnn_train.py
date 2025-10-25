@@ -65,4 +65,8 @@ def train(model, train_loader, val_loader, epochs=200, lr=0.003):
     }
 
     # TODO: gradually decrease lr and unfreeze more layers of ResNet in each stage; decoder maintains higher lr
+
+    # TODO: denormalize outputs before computing loss
+    # output_denorm = (output * 0.5 + 0.5) * 255
+    # output_denorm = output_denorm.clamp(0, 255).byte()
     
