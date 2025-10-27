@@ -14,15 +14,23 @@ train_label_path = "./dataset/fairface_label_train.csv"
 val_label_path = "./dataset/fairface_label_val.csv"
 
 class FairFaceDataset(Dataset):
-    def __init__(self, image_path, label_path, transform=None, normalize=True):
+    def __init__(self, 
+                 image_path, 
+                 label_path, 
+                 transform=None, 
+                 normalize=True,
+                 lr_size=(112, 112),
+                 hr_size=(224, 224)):
         self.image_path = image_path
-        self.file_path = pd.read_csv(label_path)["file"]
-        self.labels_raw = pd.read_csv(label_path)["race"]
+        df = pd.read_csv(label_path)
+        self.file_path = df["file"]
+        self.labels_raw = df["race"]
+
 
         cat = pd.Categorical(self.labels_raw, categories = classes, ordered = True)
-        cat = pd.Series(cat.codes)
+        idx = torch.tensor(pd.Series(cat.codes).values).long()
         # One-hot encode the labels
-        self.labels = torch.nn.functional.one_hot(torch.tensor(cat).long(), num_classes=class_count)
+        self.labels = torch.nn.functional.one_hot(idx, num_classes=class_count)
         # print(self.labels.shape)
         # print(self.labels)
 
