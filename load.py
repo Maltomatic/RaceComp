@@ -87,3 +87,14 @@ class FairFaceDataset(Dataset):
         # print("Debug: After transform:", downsample.shape, downsample.dtype)
 
         return downsample, image, label, label_str
+
+if __name__ == "__main__":
+    dataset = FairFaceDataset(train_image_path, train_label_path)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=2)
+
+    for downsample, src, labels, label_str in dataloader:
+        print("Batch of testing images shape: ", downsample.shape)
+        print("Batch of source images shape: ", src.shape)
+        print("Batch of labels shape: ", labels.shape)
+        print("Length for batch of label strings: ", len(label_str))
+        break

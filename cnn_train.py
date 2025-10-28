@@ -146,18 +146,18 @@ def train(model,
             global_epoch += 1
             model.train()
             tr = defaultdict(float); n_batches = 0
-            for images, src, labels, label_str in train_loader:  # LR, HR
+            for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
                 if(n_batches / 500 == n_batches // 500):
                     print(f"Training batch {n_batches+1}/{len(train_loader)}")
-                src    = src.to(device).float()
-                images = images.to(device).float()
+                Y_img = Y_img.to(device).float()
+                X_img = X_img.to(device).float()
 
                 with torch.amp.autocast(device_type, enabled=True):
-                    assert src.shape == (3, 112, 112) or (B, 3, 112, 112)
-                    assert images.shape == (3, 224, 224) or (B, 3, 224, 224)
-                    pred = model(images)
-                    assert pred.shape == src.shape
-                    loss = criterion(pred, src)
+                    assert Y_img.shape == (3, 224, 224) or Y_img.shape == (B, 3, 224, 224)
+                    assert X_img.shape == (3, 112, 112) or X_img.shape == (B, 3, 112, 112)
+                    pred = model(X_img)
+                    assert pred.shape == Y_img.shape
+                    loss = criterion(pred, Y_img)
 
                 optimizer.zero_grad(set_to_none=True)
                 scaler.scale(loss).backward()
@@ -166,7 +166,7 @@ def train(model,
                 scheduler.step()
 
                 pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
-                targ_vis = imagenet_denorm(src).clamp(0.0, 1.0)
+                targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
                 tr["loss"] += loss.item()
                 tr["psnr"] += psnr(pred_vis, targ_vis).mean().item()
                 tr["ssim"] += ssim_simple(pred_vis, targ_vis).mean().item()
@@ -178,18 +178,18 @@ def train(model,
             model.eval()
             v = defaultdict(float); n_val = 0; race_bucket = {}
             with torch.no_grad():
-                for images, src, labels, label_str in val_loader:
-                    src    = src.to(device).float()
-                    images = images.to(device).float()
+                for X_img, Y_img, labels, label_str in val_loader:
+                    Y_img = Y_img.to(device).float()
+                    X_img = X_img.to(device).float()
 
-                    assert src.shape == (3, 112, 112) or (B, 3, 112, 112)
-                    assert images.shape == (3, 224, 224) or (B, 3, 224, 224)
+                    assert Y_img.shape == (3, 224, 224) or Y_img.shape == (B, 3, 224, 224)
+                    assert X_img.shape == (3, 112, 112) or X_img.shape == (B, 3, 112, 112)
 
-                    pred = model(images)
-                    val_loss = criterion(pred, src)
+                    pred = model(X_img)
+                    val_loss = criterion(pred, Y_img)
 
                     pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
-                    targ_vis = imagenet_denorm(src).clamp(0.0, 1.0)
+                    targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
                     v_psnr = psnr(pred_vis, targ_vis).mean().item()
                     v_ssim = ssim_simple(pred_vis, targ_vis).mean().item()
 
