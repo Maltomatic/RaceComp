@@ -249,7 +249,65 @@ def train(model,
     # for param in model.enc2.parameters(): param.requires_grad = False
     # for param in model.enc3.parameters(): param.requires_grad = False
     # for param in model.enc4.parameters(): param.requires_grad = False
-    
+import torch.nn.functional as F
+from torch.utils.data import WeightedRandomSampler
+
+def race_weighted_sampler(dataset, race_weights, num_samples, seed=42):
+    num_augs = len(dataset.augs)
+    base_labels = dataset.labels_raw
+    weights = []
+    for img_idx in range(len(base_labels)):
+        race = base_labels.iloc[img_idx]
+        w = float(race_weights.get(race, 1.0))
+        weights.extend([w] * num_augs)
+
+    weights = torch.as_tensor(weights, dtype=torch.double)
+    assert len(weights) == len(dataset)
+
+    g = torch.Generator()
+    g.manual_seed(seed)
+    sampler = WeightedRandomSampler(weights, num_samples=num_samples, replacement=True, generator=g)
+    return sampler
+'''
+##### Use case for race_weighted_sampler #####
+train_dataset = FairFaceDataset(train_image_path, train_label_path)
+
+# 0.2 for East Asian, 1.0 for others
+race_weights = {
+    "East Asian": 0.2,
+    "Indian": 1.0,
+    "Black": 1.0,
+    "White": 1.0,
+    "Middle Eastern": 1.0,
+    "Latino_Hispanic": 1.0,
+    "Southeast Asian": 1.0,
+}
+
+sampler = race_weighted_sampler(train_dataset, race_weights, num_samples=len(train_dataset))
+
+# set shuffle=False because we are using a sampler
+train_loader = DataLoader(
+    train_dataset,
+    batch_size=B,
+    shuffle=False,
+    sampler=sampler,
+    num_workers=8,
+    pin_memory=True,
+)
+
+val_dataset = FairFaceDataset(val_image_path, val_label_path)
+val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
+
+
+
+#### Sweep through each race ####
+for minority in ["East Asian","Indian","Black","White","Middle Eastern","Latino_Hispanic","Southeast Asian"]:
+    rm = {r: (0.2 if r == minority else 1.0) for r in race_weights.keys()}
+    sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
+    train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
+    # call train(...) and save to a run-specific out_dir like f"checkpoints_unet_minority_{minority.replace(' ','_')}"
+'''
+
 if __name__ == "__main__":
     print("Using device: ", device)
     if(torch.cuda.is_available()):
