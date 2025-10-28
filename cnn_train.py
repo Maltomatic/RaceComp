@@ -13,8 +13,6 @@ import time
 from collections import defaultdict
 from torch.cuda.amp import autocast, GradScaler
 
-
-
 from load import FairFaceDataset
 from load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
 from models.cnn_abridged_unet import Resnet_upscaler as TrimResNet
@@ -24,6 +22,8 @@ B = 64
 C = 3
 H_l = W_l = 112
 H_h = W_h = 224
+
+TRAINING = False
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD  = [0.229, 0.224, 0.225]
@@ -253,33 +253,60 @@ if __name__ == "__main__":
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     model = UResNet().to(device)
-    train_dataset = FairFaceDataset(train_image_path, train_label_path)
-    train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
-
-    val_dataset = FairFaceDataset(val_image_path, val_label_path)
-    val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
-
-    print("Number of training samples: ", len(train_dataset))
-    print("Number of validation samples: ", len(val_dataset))
     
-    print("Bootstrapping data loaders")
-    for images, src, labels, label_str in train_loader:
-        print("Batch of testing images shape: ", images.shape)
-        print("Batch of source images shape: ", src.shape)
-        print("Batch of labels shape: ", labels.shape)
-        print("Batch of label strings: ", len(label_str))
-        break
+    if TRAINING:
+        train_dataset = FairFaceDataset(train_image_path, train_label_path)
+        train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
 
-    train(
-        model,
-        train_loader,
-        val_loader,
-        stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
-        epochs_per_stage=(1, 1, 1, 2),   # start small for testing
-        lr=3e-4,
-        out_dir="checkpoints_unet"
-        # use_amp=True
-    )
+        val_dataset = FairFaceDataset(val_image_path, val_label_path)
+        val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
 
-    del model
-    torch.cuda.empty_cache()
+        print("Number of training samples: ", len(train_dataset))
+        print("Number of validation samples: ", len(val_dataset))
+        
+        print("Bootstrapping data loaders")
+        for images, src, labels, label_str in train_loader:
+            print("Batch of testing images shape: ", images.shape)
+            print("Batch of source images shape: ", src.shape)
+            print("Batch of labels shape: ", labels.shape)
+            print("Batch of label strings: ", len(label_str))
+            break
+
+        train(
+            model,
+            train_loader,
+            val_loader,
+            stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
+            epochs_per_stage=(1, 1, 1, 2),   # start small for testing
+            lr=3e-4,
+            out_dir="checkpoints_unet"
+            # use_amp=True
+        )
+
+        del model
+        torch.cuda.empty_cache()
+    else:
+        print("Load model from checkpoint for inference/testing")
+        ckpt_path = "checkpoints_unet/best_stage4_epoch5.pt"
+        ckpt = torch.load(ckpt_path, map_location=device)
+        model.load_state_dict(ckpt["model"])
+        model.eval()
+        print(f"Loaded model from {ckpt_path} | val SSIM: {ckpt['val_ssim']:.4f}")
+        model.to(device)
+
+        #load test sample image
+        img_file = ".//test_files//test_112.png"
+        image = decode_image(img_file, mode = "RGB")
+        transform = torchvision.transforms.Compose([
+            torchvision.transforms.Resize((112, 112)),
+            torchvision.transforms.ConvertImageDtype(torch.float),
+            torchvision.transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
+        ])
+        input_img = transform(image).unsqueeze(0).to(device)  # add batch dimension
+        with torch.no_grad():
+            pred = model(input_img)
+            # save output image
+        output_img = denormalize_imagenet(pred.squeeze(0).cpu()).permute(1, 2, 0).numpy()
+        output_pil = Image.fromarray(output_img)
+        output_pil.save("test_output_unet.png")
+
