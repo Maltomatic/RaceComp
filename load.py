@@ -70,20 +70,20 @@ class FairFaceDataset(Dataset):
         if aug_idx != 0:
             augmentation = self.augs[aug_idx]
             image = augmentation(image)
-            print(f"Applied augmentation: {augmentation}")
+            # print(f"Applied augmentation: {augmentation}")
 
         label_str = self.labels_raw.iloc[img_idx]
         label = self.labels[img_idx]
         downsample = self.transform(image)
         downsample = self.norm(downsample)
         image = self.norm(image)
-        print("Debug: After norm:", downsample.shape, downsample.dtype)
-        print("Debug: Before transform:", image.shape, image.dtype)
+        # print("Debug: After norm:", downsample.shape, downsample.dtype)
+        # print("Debug: Before transform:", image.shape, image.dtype)
         if(downsample.shape[1] != 112 or downsample.shape[2] != 112):
             downsample = torchvision.transforms.Resize((112,112))(downsample)
         # if not float tensor:
         if downsample.dtype != torch.float:
             downsample = torchvision.transforms.ConvertImageDtype(torch.float)(downsample)
-        print("Debug: After transform:", downsample.shape, downsample.dtype)
+        # print("Debug: After transform:", downsample.shape, downsample.dtype)
 
         return downsample, image, label, label_str

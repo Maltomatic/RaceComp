@@ -4,7 +4,7 @@ import torchvision
 from torchsummary import summary
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Availability: ", device)
+# print("Availability: ", device)
 
 class conv_block(nn.Module):
     def __init__(self, in_ch, out_ch, ker=3, pad=1):
@@ -124,6 +124,9 @@ class Resnet_upscaler(nn.Module):
 # Example
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Availability: ", device)
+    if(torch.cuda.is_available()):
+        print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     model = Resnet_upscaler().to(device)
     summary(model, (3, 112, 112))
     x = torch.randn(1, 3, 112, 112)

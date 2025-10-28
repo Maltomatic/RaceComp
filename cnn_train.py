@@ -28,14 +28,9 @@ H_h = W_h = 224
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD  = [0.229, 0.224, 0.225]
 
-train_dataset = FairFaceDataset(train_image_path, train_label_path)
-train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True)
-
-val_dataset = FairFaceDataset(val_image_path, val_label_path)
-val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False)
-
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print("Using device: ", device)
+device_type = "cuda" if torch.cuda.is_available() else "cpu"
+print("Threads debug")
 
 def denormalize_imagenet(tensor):
     mean = torch.tensor([0.485, 0.456, 0.406], device=tensor.device).view(-1, 1, 1)
@@ -60,21 +55,11 @@ def show_batch(lr_batch, hr_batch, preds_batch, num_samples=4):
     plt.tight_layout()
     plt.show()
 
-print("Number of training samples: ", len(train_dataset))
-print("Number of validation samples: ", len(val_dataset))
+# print("Half-Connected U-ResNet Model Summary:")
+# print(summary(TrimResNet().to(device), (3,112,112)))
 
-for images, src, labels, label_str in train_loader:
-    print("Batch of testing images shape: ", images.shape)
-    print("Batch of source images shape: ", src.shape)
-    print("Batch of labels shape: ", labels.shape)
-    print("Batch of label strings: ", len(label_str))
-    break
-
-print("Half-Connected U-ResNet Model Summary:")
-print(summary(TrimResNet().to(device), (3,112,112)))
-
-print("Full U-ResNet Model Summary:")
-print(summary(UResNet().to(device), (3,112,112)))
+# print("Full U-ResNet Model Summary:")
+# print(summary(UResNet().to(device), (3,112,112)))
 
 def make_param_groups(model, base_lr=3e-4, dec_mult=1.0, enc_mult=0.25):
     enc_names = {"entry","enc1","enc2","enc3","enc4"}
@@ -126,7 +111,7 @@ def train(model,
     
     os.makedirs(out_dir, exist_ok=True)
     model = model.to(device)
-    scaler = GradScaler(enabled=True)
+    scaler = torch.amp.GradScaler(device_type, enabled=True)
 
     criterion = nn.L1Loss()
     best_val_ssim = -1.0
@@ -157,16 +142,22 @@ def train(model,
         print(f"\n=== Stage {stage_idx+1}/{len(stages)} | Unfrozen: {layer_list} ===")
 
         for e in range(total_epochs):
+            print(f"\n--- Epoch {e+1}/{total_epochs} ---")
             global_epoch += 1
             model.train()
             tr = defaultdict(float); n_batches = 0
-            for images, src, labels, label_str in train_loader:  # HR, LR
+            for images, src, labels, label_str in train_loader:  # LR, HR
+                if(n_batches / 500 == n_batches // 500):
+                    print(f"Training batch {n_batches+1}/{len(train_loader)}")
                 src    = src.to(device).float()
                 images = images.to(device).float()
 
-                with autocast(enabled=True):
-                    pred = model(src)
-                    loss = criterion(pred, images)
+                with torch.amp.autocast(device_type, enabled=True):
+                    assert src.shape == (3, 112, 112) or (B, 3, 112, 112)
+                    assert images.shape == (3, 224, 224) or (B, 3, 224, 224)
+                    pred = model(images)
+                    assert pred.shape == src.shape
+                    loss = criterion(pred, src)
 
                 optimizer.zero_grad(set_to_none=True)
                 scaler.scale(loss).backward()
@@ -175,7 +166,7 @@ def train(model,
                 scheduler.step()
 
                 pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
-                targ_vis = imagenet_denorm(images).clamp(0.0, 1.0)
+                targ_vis = imagenet_denorm(src).clamp(0.0, 1.0)
                 tr["loss"] += loss.item()
                 tr["psnr"] += psnr(pred_vis, targ_vis).mean().item()
                 tr["ssim"] += ssim_simple(pred_vis, targ_vis).mean().item()
@@ -191,11 +182,14 @@ def train(model,
                     src    = src.to(device).float()
                     images = images.to(device).float()
 
-                    pred = model(src)
-                    val_loss = criterion(pred, images)
+                    assert src.shape == (3, 112, 112) or (B, 3, 112, 112)
+                    assert images.shape == (3, 224, 224) or (B, 3, 224, 224)
+
+                    pred = model(images)
+                    val_loss = criterion(pred, src)
 
                     pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
-                    targ_vis = imagenet_denorm(images).clamp(0.0, 1.0)
+                    targ_vis = imagenet_denorm(src).clamp(0.0, 1.0)
                     v_psnr = psnr(pred_vis, targ_vis).mean().item()
                     v_ssim = ssim_simple(pred_vis, targ_vis).mean().item()
 
@@ -232,6 +226,9 @@ def train(model,
                 path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}.pt")
                 torch.save(ckpt, path)
                 print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
+        
+        del optimizer
+        del scheduler
 
     # encoder_layers = {
     #     "entry": model.entry,
@@ -251,14 +248,38 @@ def train(model,
     # for param in model.enc3.parameters(): param.requires_grad = False
     # for param in model.enc4.parameters(): param.requires_grad = False
     
-    if __name__ == "__main__":
-        train(
-            model,
-            train_loader,
-            val_loader,
-            stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
-            epochs_per_stage=(1, 1, 1, 2),   # start small for testing
-            base_lr=3e-4,
-            out_dir="checkpoints_unet",
-            use_amp=True
-        )
+if __name__ == "__main__":
+    print("Using device: ", device)
+    if(torch.cuda.is_available()):
+        print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
+    model = UResNet().to(device)
+    train_dataset = FairFaceDataset(train_image_path, train_label_path)
+    train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
+
+    val_dataset = FairFaceDataset(val_image_path, val_label_path)
+    val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
+
+    print("Number of training samples: ", len(train_dataset))
+    print("Number of validation samples: ", len(val_dataset))
+    
+    print("Bootstrapping data loaders")
+    for images, src, labels, label_str in train_loader:
+        print("Batch of testing images shape: ", images.shape)
+        print("Batch of source images shape: ", src.shape)
+        print("Batch of labels shape: ", labels.shape)
+        print("Batch of label strings: ", len(label_str))
+        break
+
+    train(
+        model,
+        train_loader,
+        val_loader,
+        stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
+        epochs_per_stage=(1, 1, 1, 2),   # start small for testing
+        lr=3e-4,
+        out_dir="checkpoints_unet"
+        # use_amp=True
+    )
+
+    del model
+    torch.cuda.empty_cache()
