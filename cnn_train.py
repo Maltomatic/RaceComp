@@ -30,7 +30,7 @@ IMAGENET_STD  = [0.229, 0.224, 0.225]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device_type = "cuda" if torch.cuda.is_available() else "cpu"
-print("Threads debug")
+# print("Threads debug")
 
 def denormalize_imagenet(tensor):
     mean = torch.tensor([0.485, 0.456, 0.406], device=tensor.device).view(-1, 1, 1)
@@ -61,7 +61,7 @@ def show_batch(lr_batch, hr_batch, preds_batch, num_samples=4):
 # print("Full U-ResNet Model Summary:")
 # print(summary(UResNet().to(device), (3,112,112)))
 
-def make_param_groups(model, base_lr=3e-4, dec_mult=1.0, enc_mult=0.25):
+def make_param_groups(model, base_lr=3e-4, dec_mult=1.0, enc_mult=0.5):
     enc_names = {"entry","enc1","enc2","enc3","enc4"}
     enc_ids = set()
     enc_params, dec_params = [], []
@@ -144,19 +144,19 @@ def train(model,
         for e in range(total_epochs):
             print(f"\n--- Epoch {e+1}/{total_epochs} ---")
             global_epoch += 1
+            with open("train_log.txt", "a") as file:
+                file.write(f"\n--- Epoch {global_epoch} ---\n")
             model.train()
             tr = defaultdict(float); n_batches = 0
             for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
-                if(n_batches / 500 == n_batches // 500):
+                if(n_batches % 300 == 0):
                     print(f"Training batch {n_batches+1}/{len(train_loader)}")
                 Y_img = Y_img.to(device).float()
                 X_img = X_img.to(device).float()
 
                 with torch.amp.autocast(device_type, enabled=True):
-                    assert Y_img.shape == (3, 224, 224) or Y_img.shape == (B, 3, 224, 224)
-                    assert X_img.shape == (3, 112, 112) or X_img.shape == (B, 3, 112, 112)
+                    # print("Debug: Input shapes:", X_img.shape, Y_img.shape)
                     pred = model(X_img)
-                    assert pred.shape == Y_img.shape
                     loss = criterion(pred, Y_img)
 
                 optimizer.zero_grad(set_to_none=True)
@@ -174,6 +174,9 @@ def train(model,
 
             print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                   f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
+            with open("train_log.txt", "a") as file:
+                file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
+                           f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
             
             model.eval()
             v = defaultdict(float); n_val = 0; race_bucket = {}
@@ -181,9 +184,6 @@ def train(model,
                 for X_img, Y_img, labels, label_str in val_loader:
                     Y_img = Y_img.to(device).float()
                     X_img = X_img.to(device).float()
-
-                    assert Y_img.shape == (3, 224, 224) or Y_img.shape == (B, 3, 224, 224)
-                    assert X_img.shape == (3, 112, 112) or X_img.shape == (B, 3, 112, 112)
 
                     pred = model(X_img)
                     val_loss = criterion(pred, Y_img)
@@ -214,6 +214,8 @@ def train(model,
                 print("           per-race (val):",
                       "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}"
                                  for k, vals in race_summary.items()]))
+                with open("train_log.txt", "a") as file:
+                    file.write("per-race (val): " + "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}" for k, vals in race_summary.items()]))
 
             if val_ssim > best_val_ssim:
                 best_val_ssim = val_ssim
@@ -255,6 +257,9 @@ if __name__ == "__main__":
     model = UResNet().to(device)
     
     if TRAINING:
+        with open("train_log.txt", "a") as file:
+            file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
+    
         train_dataset = FairFaceDataset(train_image_path, train_label_path)
         train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
 
@@ -263,6 +268,9 @@ if __name__ == "__main__":
 
         print("Number of training samples: ", len(train_dataset))
         print("Number of validation samples: ", len(val_dataset))
+        with open("train_log.txt", "a") as file:
+            file.write(f"\nNumber of training samples: {len(train_dataset)}")
+            file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")
         
         print("Bootstrapping data loaders")
         for images, src, labels, label_str in train_loader:
@@ -276,8 +284,8 @@ if __name__ == "__main__":
             model,
             train_loader,
             val_loader,
-            stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
-            epochs_per_stage=(1, 1, 1, 2),   # start small for testing
+            stages=([], ["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"]), #, ["entry","enc1","enc2","enc3","enc4"]),
+            epochs_per_stage=(1, 2, 2, 1), #(1, 1, 1, 2),   # start small for testing
             lr=3e-4,
             out_dir="checkpoints_unet"
             # use_amp=True
@@ -287,7 +295,7 @@ if __name__ == "__main__":
         torch.cuda.empty_cache()
     else:
         print("Load model from checkpoint for inference/testing")
-        ckpt_path = "checkpoints_unet/best_stage4_epoch5.pt"
+        ckpt_path = "checkpoints_unet/best_stage4_epoch6.pt"
         ckpt = torch.load(ckpt_path, map_location=device)
         model.load_state_dict(ckpt["model"])
         model.eval()

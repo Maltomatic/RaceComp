@@ -1,0 +1,22 @@
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Number of training samples: 520464
+Number of validation samples: 65724
+
+--- Epoch 1 ---
+Epoch 001 | train: loss 0.0934  PSNR 31.77  SSIM 0.9850
+per-race (val): East Asian: SSIM 0.996, PSNR 36.33  White: SSIM 0.996, PSNR 36.32  Latino_Hispanic: SSIM 0.996, PSNR 36.28  Southeast Asian: SSIM 0.996, PSNR 36.30  Black: SSIM 0.996, PSNR 36.39  Indian: SSIM 0.996, PSNR 36.37  Middle Eastern: SSIM 0.996, PSNR 36.34
+--- Epoch 2 ---
+Epoch 002 | train: loss 0.0559  PSNR 35.63  SSIM 0.9956
+per-race (val): East Asian: SSIM 0.998, PSNR 39.07  White: SSIM 0.998, PSNR 39.09  Latino_Hispanic: SSIM 0.998, PSNR 39.02  Southeast Asian: SSIM 0.998, PSNR 39.03  Black: SSIM 0.998, PSNR 39.08  Indian: SSIM 0.998, PSNR 39.08  Middle Eastern: SSIM 0.998, PSNR 39.07
+--- Epoch 3 ---
+Epoch 003 | train: loss 0.0342  PSNR 39.32  SSIM 0.9979
+per-race (val): East Asian: SSIM 0.998, PSNR 41.53  White: SSIM 0.998, PSNR 41.56  Latino_Hispanic: SSIM 0.998, PSNR 41.49  Southeast Asian: SSIM 0.998, PSNR 41.50  Black: SSIM 0.998, PSNR 41.57  Indian: SSIM 0.998, PSNR 41.56  Middle Eastern: SSIM 0.998, PSNR 41.55
+--- Epoch 4 ---
+Epoch 004 | train: loss 0.0406  PSNR 38.27  SSIM 0.9976
+per-race (val): East Asian: SSIM 0.998, PSNR 39.46  White: SSIM 0.998, PSNR 39.48  Latino_Hispanic: SSIM 0.998, PSNR 39.41  Southeast Asian: SSIM 0.998, PSNR 39.41  Black: SSIM 0.998, PSNR 39.46  Indian: SSIM 0.998, PSNR 39.46  Middle Eastern: SSIM 0.998, PSNR 39.47
+--- Epoch 5 ---
+Epoch 005 | train: loss 0.0302  PSNR 40.44  SSIM 0.9983
+per-race (val): East Asian: SSIM 0.999, PSNR 41.80  White: SSIM 0.999, PSNR 41.82  Latino_Hispanic: SSIM 0.999, PSNR 41.76  Southeast Asian: SSIM 0.999, PSNR 41.78  Black: SSIM 0.999, PSNR 41.86  Indian: SSIM 0.999, PSNR 41.84  Middle Eastern: SSIM 0.999, PSNR 41.83
+--- Epoch 6 ---
+Epoch 006 | train: loss 0.0332  PSNR 39.87  SSIM 0.9982
+per-race (val): East Asian: SSIM 0.999, PSNR 42.51  White: SSIM 0.999, PSNR 42.54  Latino_Hispanic: SSIM 0.999, PSNR 42.46  Southeast Asian: SSIM 0.999, PSNR 42.48  Black: SSIM 0.999, PSNR 42.54  Indian: SSIM 0.999, PSNR 42.53  Middle Eastern: SSIM 0.999, PSNR 42.52
