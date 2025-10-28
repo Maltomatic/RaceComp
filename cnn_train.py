@@ -342,8 +342,8 @@ if __name__ == "__main__":
             model,
             train_loader,
             val_loader,
-            stages=([], ["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"]), #, ["entry","enc1","enc2","enc3","enc4"]),
-            epochs_per_stage=(1, 2, 2, 1), #(1, 1, 1, 2),   # start small for testing
+            stages=([], ["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
+            epochs_per_stage=(1, 2, 3, 2, 2), #(1, 1, 1, 2),   # start small for testing
             lr=3e-4,
             out_dir="checkpoints_unet"
             # use_amp=True
