@@ -23,7 +23,7 @@ C = 3
 H_l = W_l = 112
 H_h = W_h = 224
 
-TRAINING = False
+TRAINING = True
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD  = [0.229, 0.224, 0.225]
@@ -308,6 +308,16 @@ for minority in ["East Asian","Indian","Black","White","Middle Eastern","Latino_
     # call train(...) and save to a run-specific out_dir like f"checkpoints_unet_minority_{minority.replace(' ','_')}"
 '''
 
+race_weights = {
+    "East Asian": 0.2,
+    "Indian": 1.0,
+    "Black": 1.0,
+    "White": 1.0,
+    "Middle Eastern": 1.0,
+    "Latino_Hispanic": 1.0,
+    "Southeast Asian": 1.0,
+}
+
 if __name__ == "__main__":
     print("Using device: ", device)
     if(torch.cuda.is_available()):
@@ -317,40 +327,50 @@ if __name__ == "__main__":
     if TRAINING:
         with open("train_log.txt", "a") as file:
             file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
-    
-        train_dataset = FairFaceDataset(train_image_path, train_label_path)
-        train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
 
+        train_dataset = FairFaceDataset(train_image_path, train_label_path)
         val_dataset = FairFaceDataset(val_image_path, val_label_path)
+        train_loader = None #DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
         val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
 
-        print("Number of training samples: ", len(train_dataset))
-        print("Number of validation samples: ", len(val_dataset))
-        with open("train_log.txt", "a") as file:
-            file.write(f"\nNumber of training samples: {len(train_dataset)}")
-            file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")
-        
-        print("Bootstrapping data loaders")
-        for images, src, labels, label_str in train_loader:
-            print("Batch of testing images shape: ", images.shape)
-            print("Batch of source images shape: ", src.shape)
-            print("Batch of labels shape: ", labels.shape)
-            print("Batch of label strings: ", len(label_str))
-            break
+        for minority in ["All", "East Asian","Indian","Black","White","Middle Eastern","Latino_Hispanic","Southeast Asian"]:
+            rm = None
+            if minority == "All":
+                rm = {r: 1.0 for r in race_weights.keys()}
+            else:
+                rm = {r: (0.3 if r == minority else 1.0) for r in race_weights.keys()}
+            sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
+            train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
 
-        train(
-            model,
-            train_loader,
-            val_loader,
-            stages=([], ["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
-            epochs_per_stage=(1, 2, 3, 2, 2), #(1, 1, 1, 2),   # start small for testing
-            lr=3e-4,
-            out_dir="checkpoints_unet"
-            # use_amp=True
-        )
+            # print("Number of training samples: ", len(train_dataset))
+            # print("Number of validation samples: ", len(val_dataset))
+            print(f"\n\n=== Training with minority: {minority} ===")
+            with open("train_log.txt", "a") as file:
+                file.write(f"\n\n=== Training with minority: {minority} ===\n")
+                # file.write(f"\nNumber of training samples: {len(train_dataset)}")
+                # file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")
+            
+            print("Bootstrapping data loaders")
+            for images, src, labels, label_str in train_loader:
+                print("Batch of testing images shape: ", images.shape)
+                print("Batch of source images shape: ", src.shape)
+                print("Batch of labels shape: ", labels.shape)
+                print("Batch of label strings: ", len(label_str))
+                break
 
-        del model
-        torch.cuda.empty_cache()
+            train(
+                model,
+                train_loader,
+                val_loader,
+                stages=([], ["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
+                epochs_per_stage=(1, 2, 3, 2, 2), #(1, 1, 1, 2),   # start small for testing
+                lr=3e-4,
+                out_dir="checkpoints_unet/minority_" + minority.replace(" ","_")
+                # use_amp=True
+            )
+
+            del model
+            torch.cuda.empty_cache()
     else:
         print("Load model from checkpoint for inference/testing")
         ckpt_path = "checkpoints_unet/best_stage4_epoch6.pt"
