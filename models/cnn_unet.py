@@ -21,7 +21,7 @@ class conv_block(nn.Module):
         return self.block(x)
 
 class Resnet_upscaler(nn.Module):
-    def __init__(self):
+    def __init__(self, px_shuffle = True):
         "Model structure: take 3*112*112 tensor, upscale to 3*224*224 tensor"
         super().__init__()
         self.resnet = torchvision.models.resnet.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V2)
@@ -47,11 +47,23 @@ class Resnet_upscaler(nn.Module):
         self.dec1 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
         self.conv_up1 = conv_block(128+64, 128)
         
-        self.dec0 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
-        self.conv_up0 = conv_block(64, 64)
-
-        self.up_exit = nn.ConvTranspose2d(64, 64, kernel_size=2, stride=2)
-        self.final = nn.Conv2d(64, 3, kernel_size=3, padding = 1, stride=1)
+        self.dec0 = None
+        self.conv_up0 = None
+        self.up_exit = None
+        self.final = None
+        if(px_shuffle):
+            self.dec0 = nn.Sequential(
+                nn.Conv2d(128, 64*(2**2), kernel_size=3, padding=1, stride=1),
+                nn.PixelShuffle(2)
+            )
+            self.conv_up0 = conv_block(64, 3*(2**2))
+            self.up_exit = nn.PixelShuffle(2)
+            self.final = nn.Conv2d(3, 3, kernel_size=3, padding = 1, stride=1)
+        else:
+            self.dec0 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
+            self.conv_up0 = conv_block(64, 64)
+            self.up_exit = nn.ConvTranspose2d(64, 64, kernel_size=2, stride=2)
+            self.final = nn.Conv2d(64, 3, kernel_size=3, padding = 1, stride=1)
 
     def center_crop(self, tensor, target_size):
         _, _, h, w = tensor.size()
@@ -127,7 +139,7 @@ if __name__ == "__main__":
     print("Availability: ", device)
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
-    model = Resnet_upscaler().to(device)
+    model = Resnet_upscaler(px_shuffle = False).to(device)
     summary(model, (3, 112, 112))
     x = torch.randn(1, 3, 112, 112)
     y = model(x.to(device))
