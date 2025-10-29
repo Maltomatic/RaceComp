@@ -149,7 +149,7 @@ def train(model,
             model.train()
             tr = defaultdict(float); n_batches = 0
             for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
-                if(n_batches % 300 == 0):
+                if(n_batches % 300 == 1):
                     print(f"Training batch {n_batches+1}/{len(train_loader)}")
                     print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                         f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
