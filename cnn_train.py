@@ -338,7 +338,7 @@ if __name__ == "__main__":
             if minority == "All":
                 rm = {r: 1.0 for r in race_weights.keys()}
             else:
-                rm = {r: (0.3 if r == minority else 1.0) for r in race_weights.keys()}
+                rm = {r: (0.2 if r == minority else 1.0) for r in race_weights.keys()}
             sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
             train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
 

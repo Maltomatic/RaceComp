@@ -35,22 +35,42 @@ class Resnet_upscaler(nn.Module):
         self.enc3 = self.resnet.layer3
         self.enc4 = self.resnet.layer4
 
-        self.dec4 = nn.ConvTranspose2d(2048, 1024, kernel_size=2, stride=2)
+        if(not px_shuffle):
+            self.dec4 = nn.ConvTranspose2d(2048, 1024, kernel_size=2, stride=2)
+        else:
+            self.dec4 = nn.Sequential(
+                nn.Conv2d(2048, 1024*(2**2), kernel_size=3, padding=1, stride=1),
+                nn.PixelShuffle(upscale_factor=2)
+            )
         self.conv_up4 = conv_block(2048, 1024)
         
-        self.dec3 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
+        if(not px_shuffle):
+            self.dec3 = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
+        else:
+            self.dec3 = nn.Sequential(
+                nn.Conv2d(1024, 512*(2**2), kernel_size=3, padding=1, stride=1),
+                nn.PixelShuffle(upscale_factor=2)
+            )
         self.conv_up3 = conv_block(1024, 512)
         
-        self.dec2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        if(not px_shuffle):
+            self.dec2 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        else:
+            self.dec2 = nn.Sequential(
+                nn.Conv2d(512, 256*(2**2), kernel_size=3, padding=1, stride=1),
+                nn.PixelShuffle(upscale_factor=2)
+            )
         self.conv_up2 = conv_block(512, 256)
         
-        self.dec1 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        if(not px_shuffle):
+            self.dec1 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
+        else:
+            self.dec1 = nn.Sequential(
+                nn.Conv2d(256, 128*(2**2), kernel_size=3, padding=1, stride=1),
+                nn.PixelShuffle(upscale_factor=2)
+            )
         self.conv_up1 = conv_block(128+64, 128)
-        
-        self.dec0 = None
-        self.conv_up0 = None
-        self.up_exit = None
-        self.final = None
+
         if(px_shuffle):
             self.dec0 = nn.Sequential(
                 nn.Conv2d(128, 64*(2**2), kernel_size=3, padding=1, stride=1),
@@ -139,7 +159,7 @@ if __name__ == "__main__":
     print("Availability: ", device)
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
-    model = Resnet_upscaler(px_shuffle = False).to(device)
+    model = Resnet_upscaler().to(device)
     summary(model, (3, 112, 112))
     x = torch.randn(1, 3, 112, 112)
     y = model(x.to(device))
