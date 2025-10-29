@@ -151,6 +151,11 @@ def train(model,
             for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
                 if(n_batches % 300 == 0):
                     print(f"Training batch {n_batches+1}/{len(train_loader)}")
+                    print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
+                        f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
+                    with open("train_log.txt", "a") as file:
+                        file.write(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
+                                f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
                 Y_img = Y_img.to(device).float()
                 X_img = X_img.to(device).float()
 
@@ -179,6 +184,9 @@ def train(model,
                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
             
             model.eval()
+            print("==Validation:==")
+            with open("train_log.txt", "a") as file:
+                file.write("==Validation:==\n")
             v = defaultdict(float); n_val = 0; race_bucket = {}
             with torch.no_grad():
                 for X_img, Y_img, labels, label_str in val_loader:
