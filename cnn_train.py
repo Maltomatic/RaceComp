@@ -21,6 +21,7 @@ from load import FairFaceDataset
 from load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
 from models.cnn_abridged_unet import Resnet_upscaler as TrimResNet
 from models.cnn_unet import Resnet_upscaler as UResNet
+from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
 
 B = 64
 C = 3
@@ -106,54 +107,6 @@ def accumulate_by_race(bucket, race, loss, psnr_val, ssim_val):
     b = bucket.setdefault(race, {"loss": [], "psnr": [], "ssim": []})
     b["loss"].append(loss); b["psnr"].append(psnr_val); b["ssim"].append(ssim_val)
 
-class VGG19FeatureExtractor(nn.Module):
-    def __init__(self, layers=(4, 8, 12, 16),  # conv2_2, conv3_4, conv4_4, conv5_4 by conv-count index
-                 weights=VGG19_Weights.IMAGENET1K_V1):
-        super().__init__()
-        vgg = vgg19(weights=weights).features
-        # freeze
-        for p in vgg.parameters():
-            p.requires_grad = False
-        self.vgg = vgg.eval()
-        self.capture_layers = set(layers)
-
-    @torch.no_grad()
-    def _sanity_check(self, x):
-        return x
-
-    def forward(self, x):
-        feats = []
-        conv_idx = 0
-        for m in self.vgg:
-            if isinstance(m, nn.Conv2d):
-                conv_idx += 1
-                x = m(x)
-                if conv_idx in self.capture_layers:
-                    feats.append(x.clone())
-            else:
-                x = m(x)
-        return feats
-
-
-class PerceptualLossVGG19(nn.Module):
-    def __init__(self, layer_weights=None, layers=(4, 8, 12, 16)):
-        super().__init__()
-        self.feat_net = VGG19FeatureExtractor(layers=layers)
-        if layer_weights is None:
-            layer_weights = {l: 1.0 for l in layers}
-        self.layer_weights = layer_weights
-        self.layers = layers
-
-    def forward(self, pred, target):
-        with torch.cuda.amp.autocast(False): 
-            pred_f   = self.feat_net(pred.float())
-            target_f = self.feat_net(target.float())
-        loss = 0.0
-        for l, Fp, Ft in zip(self.layers, pred_f, target_f):
-            w = self.layer_weights.get(l, 1.0)
-            loss = loss + w * F.l1_loss(Fp, Ft, reduction='mean')
-        return loss
-
 def train(model, 
           train_loader, 
           val_loader, 
@@ -170,7 +123,7 @@ def train(model,
     use_perceptual = True
     perc_layers = (4, 8, 12, 16)  # conv2_2, conv3_4, conv4_4, conv5_4
     perc_weights = {4: 1.0, 8: 1.0, 12: 1.0, 16: 1.0}  # equal weighting
-    lambda_perc = 0.01  
+    lambda_perc = 0.2  
     perceptual_criterion = PerceptualLossVGG19(layer_weights=perc_weights, layers=perc_layers).to(device)
     perceptual_criterion.eval()
 
@@ -224,7 +177,7 @@ def train(model,
                     pred = model(X_img)
                     pixel_loss = criterion(pred, Y_img)
                     if use_perceptual:
-                        with torch.cuda.amp.autocast(False):
+                        with torch.amp.autocast(device_type, enabled = False):
                             perc_loss = perceptual_criterion(pred, Y_img)
                         loss = pixel_loss + lambda_perc * perc_loss
                     else:
@@ -348,7 +301,6 @@ if __name__ == "__main__":
     print("Using device: ", device)
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
-    model = UResNet().to(device)
     
     if TRAINING:
         torch.autograd.set_detect_anomaly(True)
@@ -361,6 +313,7 @@ if __name__ == "__main__":
         val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
 
         for minority in ["All", "East Asian","Indian","Black","White","Middle Eastern","Latino_Hispanic","Southeast Asian"]:
+            model = UResNet().to(device)
             rm = None
             if minority == "All":
                 rm = {r: 1.0 for r in race_weights.keys()}
@@ -391,7 +344,7 @@ if __name__ == "__main__":
                 val_loader,
                 stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
                 epochs_per_stage=(2, 2, 3, 1), #(1, 1, 1, 2),   # start small for testing
-                lr=3e-5,
+                lr=3e-4,
                 out_dir="checkpoints_unet/minority_" + minority.replace(" ","_")
                 # use_amp=True
             )
@@ -399,6 +352,7 @@ if __name__ == "__main__":
             del model
             torch.cuda.empty_cache()
     else:
+        model = UResNet().to(device)
         print("Load model from checkpoint for inference/testing")
         ckpt_path = "checkpoints_unet/best_stage4_epoch6.pt"
         ckpt = torch.load(ckpt_path, map_location=device)
