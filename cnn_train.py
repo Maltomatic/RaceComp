@@ -30,7 +30,8 @@ IMAGENET_STD  = [0.229, 0.224, 0.225]
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device_type = "cuda" if torch.cuda.is_available() else "cpu"
-# print("Threads debug")
+
+torch.autograd.set_detect_anomaly(True)
 
 def denormalize_imagenet(tensor):
     mean = torch.tensor([0.485, 0.456, 0.406], device=tensor.device).view(-1, 1, 1)
@@ -240,23 +241,6 @@ def train(model,
         del optimizer
         del scheduler
 
-    # encoder_layers = {
-    #     "entry": model.entry,
-    #     "enc1": model.enc1,
-    #     "enc2": model.enc2,
-    #     "enc3": model.enc3,
-    #     "enc4": model.enc4
-    # }
-
-    # TODO: gradually decrease lr and unfreeze more layers of ResNet in each stage; decoder maintains higher lr
-    #Initial: only train decoder
-    # for param in model.parameters():
-    #     param.requires_grad = True
-    # for param in model.entry.parameters(): param.requires_grad = False
-    # for param in model.enc1.parameters(): param.requires_grad = False
-    # for param in model.enc2.parameters(): param.requires_grad = False
-    # for param in model.enc3.parameters(): param.requires_grad = False
-    # for param in model.enc4.parameters(): param.requires_grad = False
 import torch.nn.functional as F
 from torch.utils.data import WeightedRandomSampler
 
@@ -276,45 +260,6 @@ def race_weighted_sampler(dataset, race_weights, num_samples, seed=42):
     g.manual_seed(seed)
     sampler = WeightedRandomSampler(weights, num_samples=num_samples, replacement=True, generator=g)
     return sampler
-'''
-##### Use case for race_weighted_sampler #####
-train_dataset = FairFaceDataset(train_image_path, train_label_path)
-
-# 0.2 for East Asian, 1.0 for others
-race_weights = {
-    "East Asian": 0.2,
-    "Indian": 1.0,
-    "Black": 1.0,
-    "White": 1.0,
-    "Middle Eastern": 1.0,
-    "Latino_Hispanic": 1.0,
-    "Southeast Asian": 1.0,
-}
-
-sampler = race_weighted_sampler(train_dataset, race_weights, num_samples=len(train_dataset))
-
-# set shuffle=False because we are using a sampler
-train_loader = DataLoader(
-    train_dataset,
-    batch_size=B,
-    shuffle=False,
-    sampler=sampler,
-    num_workers=8,
-    pin_memory=True,
-)
-
-val_dataset = FairFaceDataset(val_image_path, val_label_path)
-val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
-
-
-
-#### Sweep through each race ####
-for minority in ["East Asian","Indian","Black","White","Middle Eastern","Latino_Hispanic","Southeast Asian"]:
-    rm = {r: (0.2 if r == minority else 1.0) for r in race_weights.keys()}
-    sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
-    train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
-    # call train(...) and save to a run-specific out_dir like f"checkpoints_unet_minority_{minority.replace(' ','_')}"
-'''
 
 race_weights = {
     "East Asian": 0.2,
@@ -333,6 +278,7 @@ if __name__ == "__main__":
     model = UResNet().to(device)
     
     if TRAINING:
+        torch.autograd.set_detect_anomaly(True)
         with open("train_log.txt", "a") as file:
             file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
 
@@ -370,9 +316,9 @@ if __name__ == "__main__":
                 model,
                 train_loader,
                 val_loader,
-                stages=([], ["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
-                epochs_per_stage=(1, 2, 3, 2, 2), #(1, 1, 1, 2),   # start small for testing
-                lr=3e-4,
+                stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
+                epochs_per_stage=(2, 2, 3, 1), #(1, 1, 1, 2),   # start small for testing
+                lr=3e-5,
                 out_dir="checkpoints_unet/minority_" + minority.replace(" ","_")
                 # use_amp=True
             )
