@@ -12,6 +12,10 @@ import math
 import time
 from collections import defaultdict
 from torch.cuda.amp import autocast, GradScaler
+from torchvision.models import vgg19, VGG19_Weights
+import torch.nn.functional as F
+from torch.utils.data import WeightedRandomSampler
+
 
 from load import FairFaceDataset
 from load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
@@ -102,6 +106,54 @@ def accumulate_by_race(bucket, race, loss, psnr_val, ssim_val):
     b = bucket.setdefault(race, {"loss": [], "psnr": [], "ssim": []})
     b["loss"].append(loss); b["psnr"].append(psnr_val); b["ssim"].append(ssim_val)
 
+class VGG19FeatureExtractor(nn.Module):
+    def __init__(self, layers=(4, 8, 12, 16),  # conv2_2, conv3_4, conv4_4, conv5_4 by conv-count index
+                 weights=VGG19_Weights.IMAGENET1K_V1):
+        super().__init__()
+        vgg = vgg19(weights=weights).features
+        # freeze
+        for p in vgg.parameters():
+            p.requires_grad = False
+        self.vgg = vgg.eval()
+        self.capture_layers = set(layers)
+
+    @torch.no_grad()
+    def _sanity_check(self, x):
+        return x
+
+    def forward(self, x):
+        feats = []
+        conv_idx = 0
+        for m in self.vgg:
+            if isinstance(m, nn.Conv2d):
+                conv_idx += 1
+                x = m(x)
+                if conv_idx in self.capture_layers:
+                    feats.append(x.clone())
+            else:
+                x = m(x)
+        return feats
+
+
+class PerceptualLossVGG19(nn.Module):
+    def __init__(self, layer_weights=None, layers=(4, 8, 12, 16)):
+        super().__init__()
+        self.feat_net = VGG19FeatureExtractor(layers=layers)
+        if layer_weights is None:
+            layer_weights = {l: 1.0 for l in layers}
+        self.layer_weights = layer_weights
+        self.layers = layers
+
+    def forward(self, pred, target):
+        with torch.cuda.amp.autocast(False): 
+            pred_f   = self.feat_net(pred.float())
+            target_f = self.feat_net(target.float())
+        loss = 0.0
+        for l, Fp, Ft in zip(self.layers, pred_f, target_f):
+            w = self.layer_weights.get(l, 1.0)
+            loss = loss + w * F.l1_loss(Fp, Ft, reduction='mean')
+        return loss
+
 def train(model, 
           train_loader, 
           val_loader, 
@@ -115,6 +167,13 @@ def train(model,
     scaler = torch.amp.GradScaler(device_type, enabled=True)
 
     criterion = nn.L1Loss()
+    use_perceptual = True
+    perc_layers = (4, 8, 12, 16)  # conv2_2, conv3_4, conv4_4, conv5_4
+    perc_weights = {4: 1.0, 8: 1.0, 12: 1.0, 16: 1.0}  # equal weighting
+    lambda_perc = 0.01  # typical ESRGAN-scale; tune 0.005~0.05
+    perceptual_criterion = PerceptualLossVGG19(layer_weights=perc_weights, layers=perc_layers).to(device)
+    perceptual_criterion.eval()
+
     best_val_ssim = -1.0
     global_epoch = 0
 
@@ -163,7 +222,16 @@ def train(model,
                 with torch.amp.autocast(device_type, enabled=True):
                     # print("Debug: Input shapes:", X_img.shape, Y_img.shape)
                     pred = model(X_img)
-                    loss = criterion(pred, Y_img)
+                    pixel_loss = criterion(pred, Y_img)
+                    if use_perceptual:
+                        with torch.cuda.amp.autocast(False):
+                            perc_loss = perceptual_criterion(pred, Y_img)
+                        loss = pixel_loss + lambda_perc * perc_loss
+                    else:
+                        loss = pixel_loss
+                    
+                    if n_batches % 300 == 1 and use_perceptual:
+                        print(f"pixel={pixel_loss.item():.4f}  perc={perc_loss.item():.4f}  tot={loss.item():.4f}")
 
                 optimizer.zero_grad(set_to_none=True)
                 scaler.scale(loss).backward()
@@ -195,7 +263,13 @@ def train(model,
                     X_img = X_img.to(device).float()
 
                     pred = model(X_img)
-                    val_loss = criterion(pred, Y_img)
+                    val_pixel = criterion(pred, Y_img)
+                    if use_perceptual:
+                        with torch.cuda.amp.autocast(False):
+                            val_perc = perceptual_criterion(pred, Y_img)
+                        val_loss = val_pixel + lambda_perc * val_perc
+                    else:
+                        val_loss = val_pixel
 
                     pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
                     targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
@@ -241,8 +315,7 @@ def train(model,
         del optimizer
         del scheduler
 
-import torch.nn.functional as F
-from torch.utils.data import WeightedRandomSampler
+
 
 def race_weighted_sampler(dataset, race_weights, num_samples, seed=42):
     num_augs = len(dataset.augs)
