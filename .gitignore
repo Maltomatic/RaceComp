@@ -5,3 +5,4 @@
 /models/*.pt
 /SwinIR/
 /checkpoints_unet/
+/apple_fastvit/*.pth.tar
