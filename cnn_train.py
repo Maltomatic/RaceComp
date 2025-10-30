@@ -170,7 +170,7 @@ def train(model,
     use_perceptual = True
     perc_layers = (4, 8, 12, 16)  # conv2_2, conv3_4, conv4_4, conv5_4
     perc_weights = {4: 1.0, 8: 1.0, 12: 1.0, 16: 1.0}  # equal weighting
-    lambda_perc = 0.01  # typical ESRGAN-scale; tune 0.005~0.05
+    lambda_perc = 0.01  
     perceptual_criterion = PerceptualLossVGG19(layer_weights=perc_weights, layers=perc_layers).to(device)
     perceptual_criterion.eval()
 
