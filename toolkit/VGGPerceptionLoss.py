@@ -14,7 +14,7 @@ class PerceptualLossVGG19(nn.Module):
         self.device_type = 'cuda' if torch.cuda.is_available() else 'cpu'
 
     def forward(self, pred, target):
-        with torch.amp.autocast(self.device_type, enabled = False): 
+        with torch.amp.autocast(self.device_type, enabled = True): 
             pred_f   = self.feat_net(pred.float())
             target_f = self.feat_net(target.float())
         loss = 0.0

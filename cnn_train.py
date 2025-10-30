@@ -10,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.io import decode_image
 import math
 import time
+from datetime import datetime
 from collections import defaultdict
 from torch.cuda.amp import autocast, GradScaler
 from torchvision.models import vgg19, VGG19_Weights
@@ -155,20 +156,15 @@ def train(model,
         print(f"\n=== Stage {stage_idx+1}/{len(stages)} | Unfrozen: {layer_list} ===")
 
         for e in range(total_epochs):
-            print(f"\n--- Epoch {e+1}/{total_epochs} ---")
+            print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
             global_epoch += 1
             with open("train_log.txt", "a") as file:
                 file.write(f"\n--- Epoch {global_epoch} ---\n")
             model.train()
             tr = defaultdict(float); n_batches = 0
             for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
-                if(n_batches % 300 == 1):
-                    print(f"Training batch {n_batches+1}/{len(train_loader)}")
-                    print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                        f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
-                    with open("train_log.txt", "a") as file:
-                        file.write(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                                f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
+                print(f"Training batch {n_batches}/{len(train_loader)}")
+
                 Y_img = Y_img.to(device).float()
                 X_img = X_img.to(device).float()
 
@@ -177,7 +173,7 @@ def train(model,
                     pred = model(X_img)
                     pixel_loss = criterion(pred, Y_img)
                     if use_perceptual:
-                        with torch.amp.autocast(device_type, enabled = False):
+                        with torch.amp.autocast(device_type, enabled = True):
                             perc_loss = perceptual_criterion(pred, Y_img)
                         loss = pixel_loss + lambda_perc * perc_loss
                     else:
@@ -198,6 +194,12 @@ def train(model,
                 tr["psnr"] += psnr(pred_vis, targ_vis).mean().item()
                 tr["ssim"] += ssim_simple(pred_vis, targ_vis).mean().item()
                 n_batches += 1
+                if(n_batches % 300 == 1):
+                    print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
+                        f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
+                    with open("train_log.txt", "a") as file:
+                        file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
+                                f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
 
             print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                   f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
@@ -218,7 +220,7 @@ def train(model,
                     pred = model(X_img)
                     val_pixel = criterion(pred, Y_img)
                     if use_perceptual:
-                        with torch.cuda.amp.autocast(False):
+                        with torch.amp.autocast(device_type, enabled = True):
                             val_perc = perceptual_criterion(pred, Y_img)
                         val_loss = val_pixel + lambda_perc * val_perc
                     else:

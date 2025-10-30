@@ -3,9 +3,4 @@ Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
 === Training with minority: All ===
 
 --- Epoch 1 ---
-Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
-
-=== Training with minority: All ===
-
---- Epoch 1 ---
-Batch 001 | train: loss 4.0406  PSNR 11.99  SSIM 0.0264
+Batch 001 at time 00:14:13 | train: loss 3.8998  PSNR 11.94  SSIM 0.0269
