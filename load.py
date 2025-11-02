@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import torch, torchvision
 from torch.utils.data import Dataset, DataLoader
 from torchvision.io import decode_image
+from torch.utils.data import WeightedRandomSampler
 
 classes = ['East Asian', 'Indian', 'Black', 'White', 'Middle Eastern', 'Latino_Hispanic', 'Southeast Asian']
 class_count = 7
@@ -12,6 +13,23 @@ class_count = 7
 train_image_path = val_image_path = "./dataset/fairface-img-margin025-trainval/"
 train_label_path = "./dataset/fairface_label_train.csv"
 val_label_path = "./dataset/fairface_label_val.csv"
+
+def race_weighted_sampler(dataset, race_weights, num_samples, seed=42):
+    num_augs = len(dataset.augs)
+    base_labels = dataset.labels_raw
+    weights = []
+    for img_idx in range(len(base_labels)):
+        race = base_labels.iloc[img_idx]
+        w = float(race_weights.get(race, 1.0))
+        weights.extend([w] * num_augs)
+
+    weights = torch.as_tensor(weights, dtype=torch.double)
+    assert len(weights) == len(dataset)
+
+    g = torch.Generator()
+    g.manual_seed(seed)
+    sampler = WeightedRandomSampler(weights, num_samples=num_samples, replacement=True, generator=g)
+    return sampler
 
 class FairFaceDataset(Dataset):
     def __init__(self, 
