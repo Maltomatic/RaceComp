@@ -14,29 +14,8 @@ from timm.data import IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD
 from timm.models.layers import DropPath, trunc_normal_
 from timm.models.registry import register_model
 
-from models.modules.mobileone import MobileOneBlock
-from models.modules.replknet import ReparamLargeKernelConv
-
-try:
-    from mmseg.models.builder import BACKBONES as seg_BACKBONES
-    from mmseg.utils import get_root_logger
-    from mmcv.runner import _load_checkpoint
-
-    has_mmseg = True
-except ImportError:
-    print("If for semantic segmentation, please install mmsegmentation first")
-    has_mmseg = False
-
-try:
-    from mmdet.models.builder import BACKBONES as det_BACKBONES
-    from mmdet.utils import get_root_logger
-    from mmcv.runner import _load_checkpoint
-
-    has_mmdet = True
-except ImportError:
-    print("If for detection, please install mmdetection first")
-    has_mmdet = False
-
+from models.apple_models.modules.mobileone import MobileOneBlock
+from models.apple_models.modules.replknet import ReparamLargeKernelConv
 
 def _cfg(url="", **kwargs):
     return {

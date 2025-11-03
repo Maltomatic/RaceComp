@@ -20,8 +20,7 @@ from load import FairFaceDataset
 from load import race_weighted_sampler
 from load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
 
-from models.cnn_abridged_unet import Resnet_upscaler as TrimResNet
-from models.cnn_unet import Resnet_upscaler as UResNet
+from models.vit_upscaler import VitUpscaler as VitSR
 
 from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
 from toolkit.debugs import denormalize_imagenet
@@ -32,7 +31,7 @@ C = 3
 H_l = W_l = 112
 H_h = W_h = 224
 
-desc = "cnn_unet_percep_microbatch"
+desc = "vit_microbatch"
 
 TRAINING = True
 
@@ -134,8 +133,9 @@ def train(model,
             tr = defaultdict(float); n_batches = 0
 
             for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
-                if(n_batches % 100 == 0):
-                    print(f"Training batch {n_batches + 1}/{len(train_loader)}")
+                # if(n_batches % 100 == 0):
+                #     print(f"Training batch {n_batches + 1}/{len(train_loader)}")
+                print(f"Training batch {n_batches + 1}/{len(train_loader)}")
 
                 Y_img = Y_img.to(device).float()
                 X_img = X_img.to(device).float()
@@ -147,8 +147,7 @@ def train(model,
                     if use_perceptual:
                         with torch.amp.autocast(device_type, enabled = True):
                             perc_loss = perceptual_criterion(pred, Y_img)
-                        # loss = pixel_loss + lambda_perc * perc_loss
-                        loss = perc_loss + lambda_perc * pixel_loss
+                        loss = pixel_loss + lambda_perc * perc_loss
                     else:
                         loss = pixel_loss
                     loss = loss / microbatch_steps  # Scale loss for gradient accumulation
@@ -204,8 +203,7 @@ def train(model,
                     if use_perceptual:
                         with torch.amp.autocast(device_type, enabled = True):
                             val_perc = perceptual_criterion(pred, Y_img)
-                        # val_loss = val_pixel + lambda_perc * val_perc
-                        val_loss = val_perc + lambda_perc * val_pixel
+                        val_loss = val_pixel + lambda_perc * val_perc
                     else:
                         val_loss = val_pixel
 
@@ -281,7 +279,7 @@ if __name__ == "__main__":
         val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
 
         for minority in ["All"]:
-            model = UResNet().to(device)
+            model = VitSR().to(device)
             rm = None
             if minority == "All":
                 rm = {r: 1.0 for r in race_weights.keys()}
@@ -313,16 +311,16 @@ if __name__ == "__main__":
                 stages=([], ["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
                 epochs_per_stage=(1, 2, 2, 0, 0), #(2, 2, 3, 1),
                 lr=3e-4,
-                out_dir="percep_test_checkpoints_unet/minority_" + minority.replace(" ","_")
+                out_dir="checkpoints_vit/minority_" + minority.replace(" ","_")
                 # use_amp=True
             )
 
             del model
             torch.cuda.empty_cache()
     else:
-        model = UResNet().to(device)
+        model = VitSR().to(device)
         print("Load model from checkpoint for inference/testing")
-        ckpt_path = "checkpoints_unet/best_stage4_epoch6.pt"
+        ckpt_path = "checkpoints_vit/best_stage4_epoch6.pt"
         ckpt = torch.load(ckpt_path, map_location=device)
         model.load_state_dict(ckpt["model"])
         model.eval()
@@ -343,6 +341,6 @@ if __name__ == "__main__":
             # save output image
         output_img = denormalize_imagenet(pred.squeeze(0).cpu()).permute(1, 2, 0).numpy()
         output_pil = Image.fromarray(output_img)
-        output_pil.save("test_output_unet.png")
+        output_pil.save("test_output_vit.png")
 
 # TODO: gradient accumulation, checkpoint save on keyboard interrupt

@@ -65,26 +65,26 @@ class VitUpscaler(nn.Module):
             self.encoder.network[6],
             nn.Identity()
         )
-        self.enc5 = nn.Sequential(
+        self.out = nn.Sequential(
             self.encoder.network[7],
             self.encoder.conv_exp,
             nn.Identity()
         )
     
     def forward(self, x):
-        out = self.entry(x)
-        print("After entry: ", out.shape)
-        out = self.enc1(out)
-        print("After enc1: ", out.shape)
-        out = self.enc2(out)
-        print("After enc2: ", out.shape)
-        out = self.enc3(out)
-        print("After enc3: ", out.shape)
-        out = self.enc4(out)
-        print("After enc4: ", out.shape)
-        out = self.enc5(out)
-        print("After enc5: ", out.shape)
-        return out
+        y = self.entry(x)
+        print("After entry: ", y.shape)
+        y = self.enc1(y)
+        print("After enc1: ", y.shape)
+        y = self.enc2(y)
+        print("After enc2: ", y.shape)
+        y = self.enc3(y)
+        print("After enc3: ", y.shape)
+        y = self.enc4(y)
+        print("After enc4: ", y.shape)
+        y = self.out(y)
+        print("Final: ", y.shape)
+        return y
 
 if __name__ == "__main__":
     model = VitUpscaler()
