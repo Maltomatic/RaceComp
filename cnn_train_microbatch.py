@@ -127,7 +127,7 @@ def train(model,
         for e in range(total_epochs):
             print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
             global_epoch += 1
-            with open(f"training_{desc}", "a") as file:
+            with open(f"logs/training_{desc}.txt", "a") as file:
                 file.write(f"\n--- Epoch {global_epoch} ---\n")
             model.train()
             optimizer.zero_grad(set_to_none=True)
@@ -179,19 +179,19 @@ def train(model,
                     print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                         f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
                     print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
-                    with open(f"training_{desc}", "a") as file:
+                    with open(f"logs/training_{desc}.txt", "a") as file:
                         file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
                                 f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
 
             print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                   f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
-            with open(f"training_{desc}", "a") as file:
+            with open(f"logs/training_{desc}.txt", "a") as file:
                 file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
             
             model.eval()
             print("==Validation:==")
-            with open(f"training_{desc}", "a") as file:
+            with open(f"logs/training_{desc}.txt", "a") as file:
                 file.write("==Validation:==\n")
             v = defaultdict(float); n_val = 0; race_bucket = {}
             with torch.no_grad():
@@ -235,7 +235,7 @@ def train(model,
                 print("           per-race (val):",
                       "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}"
                                  for k, vals in race_summary.items()]))
-                with open(f"training_{desc}", "a") as file:
+                with open(f"logs/training_{desc}.txt", "a") as file:
                     file.write("per-race (val): " + "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}" for k, vals in race_summary.items()]))
 
             if val_ssim > best_val_ssim:
@@ -270,7 +270,7 @@ if __name__ == "__main__":
     
     if TRAINING:
         torch.autograd.set_detect_anomaly(True)
-        with open(f"training_{desc}", "a") as file:
+        with open(f"logs/training_{desc}.txt", "a") as file:
             comment = "Perception-forward, testing microbatch to test GPU utilization"
             file.write(f"\n\n=== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} : {comment} ===\n")
             file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
@@ -293,7 +293,7 @@ if __name__ == "__main__":
             # print("Number of training samples: ", len(train_dataset))
             # print("Number of validation samples: ", len(val_dataset))
             print(f"\n\n=== Training with minority: {minority} ===")
-            with open(f"training_{desc}", "a") as file:
+            with open(f"logs/training_{desc}.txt", "a") as file:
                 file.write(f"\n\n=== Training with minority: {minority} ===\n")
                 # file.write(f"\nNumber of training samples: {len(train_dataset)}")
                 # file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")

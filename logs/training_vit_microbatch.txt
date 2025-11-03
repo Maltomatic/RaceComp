@@ -1,0 +1,9 @@
+
+
+=== 2025-11-02 17:58:39 : Perception-forward, testing microbatch to test GPU utilization ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+
+=== Training with minority: All ===
+
+--- Epoch 1 ---
+Batch 001 at time 17:59:35 | train: loss 4.0234  PSNR 11.49  SSIM 0.0257
