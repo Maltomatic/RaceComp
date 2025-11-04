@@ -34,7 +34,7 @@ H_h = W_h = 224
 
 desc = "cnn_unet_percep_microbatch"
 
-TRAINING = True
+TRAINING = False
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD  = [0.229, 0.224, 0.225]
@@ -322,7 +322,7 @@ if __name__ == "__main__":
     else:
         model = UResNet().to(device)
         print("Load model from checkpoint for inference/testing")
-        ckpt_path = "checkpoints_unet/best_stage4_epoch6.pt"
+        ckpt_path = "checkpoints_unet/percep_stage4_epoch8.pt"
         ckpt = torch.load(ckpt_path, map_location=device)
         model.load_state_dict(ckpt["model"])
         model.eval()
@@ -330,7 +330,8 @@ if __name__ == "__main__":
         model.to(device)
 
         #load test sample image
-        img_file = ".//test_files//test_112.png"
+        testpath = "test_112.png"
+        img_file = f".//test_files//{testpath}"
         image = decode_image(img_file, mode = "RGB")
         transform = torchvision.transforms.Compose([
             torchvision.transforms.Resize((112, 112)),
@@ -343,6 +344,6 @@ if __name__ == "__main__":
             # save output image
         output_img = denormalize_imagenet(pred.squeeze(0).cpu()).permute(1, 2, 0).numpy()
         output_pil = Image.fromarray(output_img)
-        output_pil.save("test_output_unet.png")
+        output_pil.save(f"test_files/outputs/unet_output_{testpath}.png")
 
 # TODO: gradient accumulation, checkpoint save on keyboard interrupt

@@ -316,8 +316,8 @@ if __name__ == "__main__":
         model.to(device)
 
         #load test sample image
-        img_file = ".//test_files//test_112.png"
-        image = decode_image(img_file, mode = "RGB")
+        testpath = "test_112.png"
+        img_file = f".//test_files//{testpath}"
         transform = torchvision.transforms.Compose([
             torchvision.transforms.Resize((112, 112)),
             torchvision.transforms.ConvertImageDtype(torch.float),
@@ -329,6 +329,6 @@ if __name__ == "__main__":
             # save output image
         output_img = denormalize_imagenet(pred.squeeze(0).cpu()).permute(1, 2, 0).numpy()
         output_pil = Image.fromarray(output_img)
-        output_pil.save("test_output_unet.png")
+        output_pil.save(f"test_files/outputs/unet_output_{testpath}.png")
 
 # TODO: gradient accumulation, checkpoint save on keyboard interrupt

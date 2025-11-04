@@ -9,3 +9,70 @@ Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
 Batch 001 at time 18:05:57 | train: loss 3.9760  PSNR 11.96  SSIM 0.0239
 Batch 801 at time 18:22:18 | train: loss 3.8709  PSNR 11.78  SSIM 0.0425
 Batch 1601 at time 18:40:17 | train: loss 3.7467  PSNR 12.10  SSIM 0.1401
+Batch 2401 at time 18:55:09 | train: loss 3.5110  PSNR 12.71  SSIM 0.2863
+Batch 3201 at time 19:09:09 | train: loss 3.3179  PSNR 13.34  SSIM 0.3788
+Batch 4001 at time 19:23:09 | train: loss 3.1408  PSNR 14.20  SSIM 0.4558
+Batch 4801 at time 19:40:37 | train: loss 2.9726  PSNR 15.32  SSIM 0.5244
+Batch 5601 at time 20:00:29 | train: loss 2.8216  PSNR 16.53  SSIM 0.5821
+Batch 6401 at time 20:20:18 | train: loss 2.6942  PSNR 17.66  SSIM 0.6284
+Batch 7201 at time 20:39:57 | train: loss 2.5861  PSNR 18.64  SSIM 0.6653
+Batch 8001 at time 20:59:37 | train: loss 2.4956  PSNR 19.45  SSIM 0.6951
+Batch 8801 at time 21:16:55 | train: loss 2.4177  PSNR 20.14  SSIM 0.7197
+Batch 9601 at time 21:31:05 | train: loss 2.3501  PSNR 20.73  SSIM 0.7403
+Batch 10401 at time 21:50:40 | train: loss 2.2906  PSNR 21.25  SSIM 0.7578
+Batch 11201 at time 22:10:26 | train: loss 2.2383  PSNR 21.70  SSIM 0.7729
+Batch 12001 at time 22:30:01 | train: loss 2.1915  PSNR 22.10  SSIM 0.7860
+Batch 12801 at time 22:47:58 | train: loss 2.1493  PSNR 22.46  SSIM 0.7975
+Epoch 001 | train: loss 2.1386  PSNR 22.55  SSIM 0.8003
+==Validation:==
+per-race (val): East Asian: SSIM 0.971, PSNR 27.99  White: SSIM 0.971, PSNR 27.98  Latino_Hispanic: SSIM 0.971, PSNR 27.91  Southeast Asian: SSIM 0.970, PSNR 27.90  Black: SSIM 0.971, PSNR 28.00  Indian: SSIM 0.971, PSNR 27.98  Middle Eastern: SSIM 0.971, PSNR 27.98
+--- Epoch 2 ---
+Batch 001 at time 23:01:32 | train: loss 1.4711  PSNR 27.94  SSIM 0.9781
+Batch 801 at time 23:22:46 | train: loss 1.4904  PSNR 28.00  SSIM 0.9712
+Batch 1601 at time 23:44:13 | train: loss 1.4785  PSNR 28.06  SSIM 0.9715
+Batch 2401 at time 23:59:31 | train: loss 1.4715  PSNR 28.11  SSIM 0.9716
+Batch 3201 at time 00:16:21 | train: loss 1.4647  PSNR 28.16  SSIM 0.9719
+Batch 4001 at time 00:30:29 | train: loss 1.4592  PSNR 28.20  SSIM 0.9721
+Batch 4801 at time 00:44:38 | train: loss 1.4526  PSNR 28.24  SSIM 0.9723
+Batch 5601 at time 00:59:09 | train: loss 1.4472  PSNR 28.27  SSIM 0.9725
+Batch 6401 at time 01:13:58 | train: loss 1.4420  PSNR 28.31  SSIM 0.9727
+Batch 7201 at time 01:28:49 | train: loss 1.4372  PSNR 28.34  SSIM 0.9728
+Batch 8001 at time 01:43:42 | train: loss 1.4328  PSNR 28.37  SSIM 0.9729
+Batch 8801 at time 01:57:56 | train: loss 1.4286  PSNR 28.40  SSIM 0.9731
+Batch 9601 at time 02:12:36 | train: loss 1.4253  PSNR 28.42  SSIM 0.9732
+Batch 10401 at time 02:27:06 | train: loss 1.4218  PSNR 28.44  SSIM 0.9733
+Batch 11201 at time 02:41:22 | train: loss 1.4188  PSNR 28.46  SSIM 0.9733
+Batch 12001 at time 02:55:33 | train: loss 1.4163  PSNR 28.48  SSIM 0.9734
+Batch 12801 at time 03:14:53 | train: loss 1.4140  PSNR 28.50  SSIM 0.9735
+Epoch 002 | train: loss 1.4132  PSNR 28.51  SSIM 0.9736
+==Validation:==
+per-race (val): East Asian: SSIM 0.975, PSNR 28.79  White: SSIM 0.975, PSNR 28.77  Latino_Hispanic: SSIM 0.975, PSNR 28.71  Southeast Asian: SSIM 0.974, PSNR 28.68  Black: SSIM 0.974, PSNR 28.79  Indian: SSIM 0.975, PSNR 28.77  Middle Eastern: SSIM 0.975, PSNR 28.77
+--- Epoch 3 ---
+Batch 001 at time 03:26:51 | train: loss 1.4150  PSNR 28.80  SSIM 0.9753
+Batch 801 at time 03:41:36 | train: loss 1.4263  PSNR 28.51  SSIM 0.9737
+Batch 1601 at time 03:57:58 | train: loss 1.3964  PSNR 28.71  SSIM 0.9747
+Batch 2401 at time 04:19:28 | train: loss 1.3837  PSNR 28.76  SSIM 0.9750
+Batch 3201 at time 04:43:10 | train: loss 1.3697  PSNR 28.86  SSIM 0.9755
+Batch 4001 at time 05:06:57 | train: loss 1.3563  PSNR 28.95  SSIM 0.9759
+Batch 4801 at time 05:30:38 | train: loss 1.3456  PSNR 29.03  SSIM 0.9762
+Batch 5601 at time 05:57:15 | train: loss 1.3356  PSNR 29.11  SSIM 0.9765
+Batch 6401 at time 06:22:35 | train: loss 1.3262  PSNR 29.18  SSIM 0.9768
+Batch 7201 at time 06:46:01 | train: loss 1.3182  PSNR 29.24  SSIM 0.9770
+Batch 8001 at time 07:09:30 | train: loss 1.3106  PSNR 29.29  SSIM 0.9772
+Batch 8801 at time 07:32:54 | train: loss 1.3037  PSNR 29.34  SSIM 0.9774
+Batch 9601 at time 07:56:54 | train: loss 1.2967  PSNR 29.39  SSIM 0.9776
+Batch 10401 at time 08:20:42 | train: loss 1.2909  PSNR 29.43  SSIM 0.9777
+Batch 11201 at time 08:44:27 | train: loss 1.2854  PSNR 29.47  SSIM 0.9778
+Batch 12001 at time 09:08:05 | train: loss 1.2805  PSNR 29.50  SSIM 0.9779
+Batch 12801 at time 09:31:43 | train: loss 1.2762  PSNR 29.53  SSIM 0.9781
+Epoch 003 | train: loss 1.2750  PSNR 29.54  SSIM 0.9781
+==Validation:==
+per-race (val): East Asian: SSIM 0.980, PSNR 30.02  White: SSIM 0.979, PSNR 29.99  Latino_Hispanic: SSIM 0.980, PSNR 29.93  Southeast Asian: SSIM 0.979, PSNR 29.90  Black: SSIM 0.979, PSNR 30.02  Indian: SSIM 0.979, PSNR 29.99  Middle Eastern: SSIM 0.980, PSNR 29.99
+
+=== Training with minority: East Asian ===
+
+--- Epoch 1 ---
+Batch 001 at time 09:48:10 | train: loss 4.3963  PSNR 11.73  SSIM 0.0208
+Batch 801 at time 10:12:23 | train: loss 3.9072  PSNR 11.78  SSIM 0.0326
+Batch 1601 at time 10:36:10 | train: loss 3.6842  PSNR 12.64  SSIM 0.1570
+Batch 2401 at time 10:59:45 | train: loss 3.2753  PSNR 14.90  SSIM 0.3831
