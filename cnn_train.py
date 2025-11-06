@@ -23,6 +23,7 @@ from load import classes, class_count, train_image_path, train_label_path, val_i
 from models.cnn_abridged_unet import Resnet_upscaler as TrimResNet
 from models.cnn_unet import Resnet_upscaler as UResNet
 from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
+from tqdm import tqdm
 
 B = 64
 C = 3
@@ -162,7 +163,7 @@ def train(model,
                 file.write(f"\n--- Epoch {global_epoch} ---\n")
             model.train()
             tr = defaultdict(float); n_batches = 0
-            for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
+            for X_img, Y_img, labels, label_str in tqdm(train_loader, desc=f"Train Epoch {global_epoch}", total=len(train_loader), leave=False):
                 print(f"Training batch {n_batches}/{len(train_loader)}")
 
                 Y_img = Y_img.to(device).float()
@@ -213,7 +214,7 @@ def train(model,
                 file.write("==Validation:==\n")
             v = defaultdict(float); n_val = 0; race_bucket = {}
             with torch.no_grad():
-                for X_img, Y_img, labels, label_str in val_loader:
+                for X_img, Y_img, labels, label_str in tqdm(val_loader, desc=f"Val Epoch {global_epoch}", total=len(val_loader), leave=False):
                     Y_img = Y_img.to(device).float()
                     X_img = X_img.to(device).float()
 
