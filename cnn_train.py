@@ -184,7 +184,7 @@ def train(model,
                 file.write("==Validation:==\n")
             v = defaultdict(float); n_val = 0; race_bucket = {}
             with torch.no_grad():
-                for X_img, Y_img, labels, label_str in val_loader:
+                for X_img, Y_img, labels, label_str in tqdm(val_loader, desc=f"Val Epoch {global_epoch}", total=len(val_loader), leave=False):
                     Y_img = Y_img.to(device).float()
                     X_img = X_img.to(device).float()
 
