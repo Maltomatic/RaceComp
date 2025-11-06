@@ -61,8 +61,9 @@ train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern",
 epoch_stages = (2, 1, 0, 0)
 use_percep = True
 use_ssim = False
-microbatches = 8
+microbatches = 8 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 
+under_represented_ratio = 0.05
 tgt_race = "All"
 test_stage = 2
 test_epoch = 3
@@ -326,7 +327,7 @@ if __name__ == "__main__":
             if minority == "All":
                 rm = {r: 1.0 for r in race_weights.keys()}
             else:
-                rm = {r: (0.2 if r == minority else 1.0) for r in race_weights.keys()}
+                rm = {r: (under_represented_ratio if r == minority else 1.0) for r in race_weights.keys()}
             sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
             train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
 
