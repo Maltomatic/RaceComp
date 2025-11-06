@@ -19,7 +19,7 @@ class conv_block(nn.Module):
     def forward(self, x):
         return self.block(x)
 
-class Resnet_upscaler(nn.Module):
+class Resnet_upscaler_trim(nn.Module):
     def __init__(self, output_size=(224,224), px_shuffle = True):
         "Model structure: take 3*112*112 tensor, upscale to 3*224*224 tensor"
         super().__init__()
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     print("Availability: ", device)
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
-    model = Resnet_upscaler(px_shuffle=True).to(device)
+    model = Resnet_upscaler_trim(px_shuffle=True).to(device)
     summary(model, (3, 112, 112))
     x = torch.randn(1, 3, 112, 112)
     y = model(x.to(device))
