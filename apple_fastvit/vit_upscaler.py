@@ -1,4 +1,6 @@
 import torch
+import sys
+import os
 import models
 from torch import nn
 import torchvision
@@ -33,29 +35,60 @@ class VitUpscaler(nn.Module):
         super().__init__()
         # Load the base FastViT model
         self.encoder = create_model(base_model)
+        chkp = torch.load('fastvit_ma36.pth.tar')
+        state_dict = chkp['state_dict']
+        self.encoder.load_state_dict(state_dict)
+
         if hasattr(self.encoder, "head"):
             self.encoder.head = nn.Identity()
-        self.exposed_features = {}
-        
 
+        self.entry = nn.Sequential(
+            self.encoder.patch_embed,
+            nn.Identity()
+        )
+        self.enc1 = nn.Sequential(
+            self.encoder.network[0],
+            nn.Identity()
+        )
+        self.enc2 = nn.Sequential(
+            self.encoder.network[1],
+            self.encoder.network[2],
+            nn.Identity()
+        )
+        self.enc3 = nn.Sequential(
+            self.encoder.network[3],
+            self.encoder.network[4],
+            nn.Identity()
+        )
+        self.enc4 = nn.Sequential(
+            self.encoder.network[5],
+            self.encoder.network[6],
+            nn.Identity()
+        )
+        self.out = nn.Sequential(
+            self.encoder.network[7],
+            self.encoder.conv_exp,
+            nn.Identity()
+        )
+    
+    def forward(self, x):
+        y = self.entry(x)
+        print("After entry: ", y.shape)
+        y = self.enc1(y)
+        print("After enc1: ", y.shape)
+        y = self.enc2(y)
+        print("After enc2: ", y.shape)
+        y = self.enc3(y)
+        print("After enc3: ", y.shape)
+        y = self.enc4(y)
+        print("After enc4: ", y.shape)
+        y = self.out(y)
+        print("Final: ", y.shape)
+        return y
 
-# To Train from scratch/fine-tuning
-model = create_model("fastvit_ma36")
-# ... train ...
-
-# Load unfused pre-trained checkpoint for fine-tuning
-# or for downstream task training like detection/segmentation
-checkpoint = torch.load('fastvit_ma36.pth.tar')
-model.load_state_dict(checkpoint['state_dict'])
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-# summary(model.to(device), (3, 112, 112))
-
-print("Model Structure:")
-print(model)
-# ... train ...
-
-
-# # For inference
-# model.eval()      
-# model_inf = reparameterize_model(model)
-# # Use model_inf at test-time
+if __name__ == "__main__":
+    model = VitUpscaler()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    model(torch.randn(1,3,112,112).to(device))
+    # summary(model.to(device), (3, 112, 112))

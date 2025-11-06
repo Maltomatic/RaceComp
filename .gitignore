@@ -1,8 +1,14 @@
 /dataset/
 /__pycache__/
 /models/__pycache__/
-/models/*.pth
-/models/*.pt
 /SwinIR/
 /checkpoints_unet/
 /apple_fastvit/*.pth.tar
+*/*log*.txt
+*log*.txt
+**/*.pth.tar
+**/*.pth
+**/*.pt
+**__pycache__/
+*.ipynb_checkpoints
+/apple_fastvit
