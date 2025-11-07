@@ -43,7 +43,7 @@ class FairFaceDataset(Dataset):
         df = pd.read_csv(label_path)
         self.file_path = df["file"]
         self.labels_raw = df["race"]
-
+        self.downsize = lr_size
 
         cat = pd.Categorical(self.labels_raw, categories = classes, ordered = True)
         idx = torch.tensor(pd.Series(cat.codes).values).long()
@@ -61,7 +61,7 @@ class FairFaceDataset(Dataset):
         else:
             norm = torchvision.transforms.ConvertImageDtype(torch.float)
         if(transform is None):
-            transform = torchvision.transforms.Resize((112, 112))
+            transform = torchvision.transforms.Resize(self.downsize)
         self.transform = transform
         self.norm = norm
         self.augs = [
@@ -97,8 +97,8 @@ class FairFaceDataset(Dataset):
         image = self.norm(image)
         # print("Debug: After norm:", downsample.shape, downsample.dtype)
         # print("Debug: Before transform:", image.shape, image.dtype)
-        if(downsample.shape[1] != 112 or downsample.shape[2] != 112):
-            downsample = torchvision.transforms.Resize((112,112))(downsample)
+        if(downsample.shape[1] != self.downsize[0] or downsample.shape[2] != self.downsize[1]):
+            downsample = torchvision.transforms.Resize(self.downsize)(downsample)
         # if not float tensor:
         if downsample.dtype != torch.float:
             downsample = torchvision.transforms.ConvertImageDtype(torch.float)(downsample)
@@ -107,7 +107,7 @@ class FairFaceDataset(Dataset):
         return downsample, image, label, label_str
 
 if __name__ == "__main__":
-    dataset = FairFaceDataset(train_image_path, train_label_path)
+    dataset = FairFaceDataset(train_image_path, train_label_path, lr_size = (56, 56))
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=2)
 
     for downsample, src, labels, label_str in dataloader:

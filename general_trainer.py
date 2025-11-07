@@ -3,6 +3,9 @@ import os
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
+
+import warnings
+
 import torch, torchvision
 import torch.nn as nn
 from torchsummary import summary
@@ -20,10 +23,10 @@ from load import FairFaceDataset
 from load import race_weighted_sampler
 from load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
 
-from models.cnn_resize_conv_upscaler import Resnet_Interpolate_Upscaler as InterNet
-from models.cnn_unet import Resnet_upscaler as UResNet
+from models.cnn_56_interNet import Resnet_Interpolate_Upscaler as InterNet
+from models.cnn_56_bridged_unet import Resnet_upscaler as UResNet
 from models.cnn_abridged_unet import Resnet_upscaler_trim as TrimResNet
-from models.vit_upscaler import VitUpscaler as VitNet
+from models.vit_56 import VitUpscaler as VitNet
 
 from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
 from toolkit.debugs import denormalize_imagenet
@@ -34,40 +37,45 @@ C = 3
 H_l = W_l = 112
 H_h = W_h = 224
 
-model_list = [
-    VitNet(base_model = "fastvit_ma36", factor = 2, out_shape = (3, 224, 224)), 
-    InterNet(px_shuffle=False, px_shuffle_interpolate=True, px_buffer = True, px_out=False, downsampler = False),
-    TrimResNet(output_size=(224,224), px_shuffle = True),
-    UResNet(px_shuffle = True)
-]
-model_names = ["VitNet", "InterNet", "TrimResNet", "UResNet"]
-
 #################### configs #################### 
 TRAINING = True
-desc = "unet_microbatch"
-training_comment = "unet model testing microbatch to test GPU utilization"
+training_comment = "vit model testing size 56 for shape"
 
-model_idx = 1
+model_idx = 2
 # idx:
     # 0 - VitNet
     # 1 - InterNet
-    # 2 - TrimResNet
-    # 3 - UResNet
-
-Modelnet = model_list[model_idx]
-model_type = model_names[model_idx]
-
+    # 2 - UResNet
+    # 3 - TrimResNet
 train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
-epoch_stages = (2, 1, 0, 0)
 use_percep = True
+perc = 0.1
 use_ssim = False
 microbatches = 8 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
+sz = 56 # or 56
+epoch_stages = (2, 1, 0, 0) if sz == 112 else (2, 2, 0, 0)
 
 under_represented_ratio = 0.05
 tgt_race = "All"
 test_stage = 2
 test_epoch = 3
+
+config_str = f"size{sz}_mb{microbatches}_percep{int(use_percep)}_ssim{int(use_ssim)}"
 #################################################
+model_names = ["VitNet", "InterNet", "UResNet", "TrimResNet"]
+
+Modelnet = VitNet(base_model = "fastvit_ma36", factor = 2,
+                  input_shape=(3, sz, sz), out_shape = (3, 224, 224)) if model_idx == 0 else \
+           InterNet(px_shuffle=False, px_shuffle_interpolate=True,
+                    px_buffer = True, px_out=False, downsampler = True,
+                    input_shape=(3, sz, sz)) if model_idx == 1 else \
+           UResNet(px_shuffle = True, input_shape = (3, sz, sz)) if model_idx == 2 else \
+           TrimResNet(output_size=(224,224), px_shuffle = True)
+model_type = model_names[model_idx]
+desc = f"{model_type}/{config_str}/_trained_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}"
+
+train_stages = (["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]) if sz == 112\
+    else (["enc3"], ["enc3","enc2"], ["enc1","enc2","enc3"])
 
 IMAGENET_MEAN = [0.485, 0.456, 0.406]
 IMAGENET_STD  = [0.229, 0.224, 0.225]
@@ -112,7 +120,8 @@ def train(model,
           out_dir="checkpoints",
           microbatch_steps = 8,
           use_perceptual = True,
-          use_ssim = True):
+          use_ssim = True,
+          perc = 0.1):
 
     os.makedirs(out_dir, exist_ok=True)
     model = model.to(device)
@@ -121,7 +130,7 @@ def train(model,
     criterion = nn.L1Loss()
     perc_layers = (4, 8, 12, 16)  # conv2_2, conv3_4, conv4_4, conv5_4
     perc_weights = {4: 1.0, 8: 1.0, 12: 1.0, 16: 1.0}  # equal weighting
-    lambda_perc = 0.1
+    lambda_perc = perc
     perceptual_criterion = PerceptualLossVGG19(layer_weights=perc_weights, layers=perc_layers).to(device)
     perceptual_criterion.eval()
 
@@ -156,7 +165,7 @@ def train(model,
         for e in range(total_epochs):
             print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
             global_epoch += 1
-            with open(f"logs/training_{desc}.txt", "a") as file:
+            with open(f"logs/training/{desc}.txt", "a") as file:
                 file.write(f"\n--- Epoch {global_epoch} ---\n")
             model.train()
             optimizer.zero_grad(set_to_none=True)
@@ -208,19 +217,19 @@ def train(model,
                     print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                         f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
                     print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
-                    with open(f"logs/training_{desc}.txt", "a") as file:
+                    with open(f"logs/training/{desc}.txt", "a") as file:
                         file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
                                 f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
 
             print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                   f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
-            with open(f"logs/training_{desc}.txt", "a") as file:
+            with open(f"logs/training/{desc}.txt", "a") as file:
                 file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
             
             model.eval()
             print("==Validation:==")
-            with open(f"logs/training_{desc}.txt", "a") as file:
+            with open(f"logs/training/{desc}.txt", "a") as file:
                 file.write("==Validation:==\n")
             v = defaultdict(float); n_val = 0; race_bucket = {}
             with torch.no_grad():
@@ -264,7 +273,7 @@ def train(model,
                 print("           per-race (val):",
                       "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}"
                                  for k, vals in race_summary.items()]))
-                with open(f"logs/training_{desc}.txt", "a") as file:
+                with open(f"logs/training/{desc}.txt", "a") as file:
                     file.write("per-race (val): " + "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}" for k, vals in race_summary.items()]))
 
             if use_ssim:
@@ -276,7 +285,7 @@ def train(model,
                         "race_summary": race_summary,
                         "stage": stage_idx+1, "epoch": global_epoch
                     }
-                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}.pt")
+                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
                     torch.save(ckpt, path)
                     print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
             else:
@@ -288,7 +297,7 @@ def train(model,
                         "race_summary": race_summary,
                         "stage": stage_idx+1, "epoch": global_epoch
                     }
-                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}.pt")
+                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
                     torch.save(ckpt, path)
                     print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
         
@@ -306,18 +315,24 @@ race_weights = {
 }
 
 if __name__ == "__main__":
+    if(model_type == "TrimResNet"):
+        print("TrimResNet model selected, ensure input size is 112x112 due to internal structure.")
+        assert sz == 112, "TrimResNet only supports input size of 112x112."
     print("Using device: ", device)
+    print(f"Logging to {"logs/training/{desc}.txt"} with configs - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     
     if TRAINING:
         torch.autograd.set_detect_anomaly(True)
-        with open(f"logs/training_{desc}.txt", "a") as file:
+        with open(f"logs/training/{desc}.txt", "a") as file:
             file.write(f"\n\n=== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} : {training_comment} ===\n")
             file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
+            file.write(f"\nConfigs - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
 
-        train_dataset = FairFaceDataset(train_image_path, train_label_path)
-        val_dataset = FairFaceDataset(val_image_path, val_label_path)
+
+        train_dataset = FairFaceDataset(train_image_path, train_label_path, lr_size=(sz, sz))
+        val_dataset = FairFaceDataset(val_image_path, val_label_path, lr_size=(sz, sz))
         train_loader = None #DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
         val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
 
@@ -333,9 +348,9 @@ if __name__ == "__main__":
 
             # print("Number of training samples: ", len(train_dataset))
             # print("Number of validation samples: ", len(val_dataset))
-            print(f"\n\n=== Training with minority: {minority} ===")
-            with open(f"logs/training_{desc}.txt", "a") as file:
-                file.write(f"\n\n=== Training with minority: {minority} ===\n")
+            print(f"\n=== Training with minority: {minority} ===")
+            with open(f"logs/training/{desc}.txt", "a") as file:
+                file.write(f"\n=== Training with minority: {minority} ===\n")
                 # file.write(f"\nNumber of training samples: {len(train_dataset)}")
                 # file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")
             
@@ -346,18 +361,19 @@ if __name__ == "__main__":
                 print("Batch of labels shape: ", labels.shape)
                 print("Batch of label strings: ", len(label_str))
                 break
-
+            
             train(
                 model,
                 train_loader,
                 val_loader,
-                stages=(["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]),
+                stages=train_stages,
                 epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
                 lr=3e-4,
-                out_dir=f"checkpoints_{model_type}/minority_" + minority.replace(" ","_"),
+                out_dir=f"checkpoints/{model_type}/config_{config_str}/minority_{minority.replace(" ","_")}",
                 use_perceptual= use_percep,
                 use_ssim= use_ssim,
-                microbatch_steps = microbatches
+                microbatch_steps = microbatches,
+                perc = perc
             )
 
             del model

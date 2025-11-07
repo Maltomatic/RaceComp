@@ -1,12 +1,12 @@
 import torch
 import sys
 import os
-import models
+import models.apple_models
 from torch import nn
 import torchvision
 from torchsummary import summary
 from timm.models import create_model
-from models.modules.mobileone import reparameterize_model
+from models.apple_models.modules.mobileone import reparameterize_model
 
 class conv_block(nn.Module):
     def __init__(self, in_ch, out_ch, ker=3, pad=1):
@@ -29,7 +29,7 @@ class up_block(nn.Module): # increase shape by factor of scale
         )
     def forward(self, x):
         return self.up(x)
-
+    
 class VitUpscaler(nn.Module):
     def __init__(self, base_model = "fastvit_ma36", factor = 2, input_shape = (3, 112, 112), out_shape = (3, 224, 224)):
         super().__init__()
