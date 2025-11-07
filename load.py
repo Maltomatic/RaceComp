@@ -44,6 +44,7 @@ class FairFaceDataset(Dataset):
         self.file_path = df["file"]
         self.labels_raw = df["race"]
         self.downsize = lr_size
+        print(f"Dataset low-res size: {self.downsize}, high-res size: {hr_size}")
 
         cat = pd.Categorical(self.labels_raw, categories = classes, ordered = True)
         idx = torch.tensor(pd.Series(cat.codes).values).long()

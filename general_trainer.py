@@ -41,7 +41,7 @@ H_h = W_h = 224
 TRAINING = True
 training_comment = "vit model testing size 56 for shape"
 
-model_idx = 2
+model_idx = 0
 # idx:
     # 0 - VitNet
     # 1 - InterNet
@@ -72,7 +72,8 @@ Modelnet = VitNet(base_model = "fastvit_ma36", factor = 2,
            UResNet(px_shuffle = True, input_shape = (3, sz, sz)) if model_idx == 2 else \
            TrimResNet(output_size=(224,224), px_shuffle = True)
 model_type = model_names[model_idx]
-desc = f"{model_type}/{config_str}/_trained_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}"
+desc_path = f"{model_type}/{config_str}/"
+desc = f"trained_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}"
 
 train_stages = (["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]) if sz == 112\
     else (["enc3"], ["enc3","enc2"], ["enc1","enc2","enc3"])
@@ -165,7 +166,7 @@ def train(model,
         for e in range(total_epochs):
             print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
             global_epoch += 1
-            with open(f"logs/training/{desc}.txt", "a") as file:
+            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                 file.write(f"\n--- Epoch {global_epoch} ---\n")
             model.train()
             optimizer.zero_grad(set_to_none=True)
@@ -217,19 +218,19 @@ def train(model,
                     print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                         f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
                     print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
-                    with open(f"logs/training/{desc}.txt", "a") as file:
+                    with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                         file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
                                 f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
 
             print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                   f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
-            with open(f"logs/training/{desc}.txt", "a") as file:
+            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                 file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
             
             model.eval()
             print("==Validation:==")
-            with open(f"logs/training/{desc}.txt", "a") as file:
+            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                 file.write("==Validation:==\n")
             v = defaultdict(float); n_val = 0; race_bucket = {}
             with torch.no_grad():
@@ -273,7 +274,7 @@ def train(model,
                 print("           per-race (val):",
                       "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}"
                                  for k, vals in race_summary.items()]))
-                with open(f"logs/training/{desc}.txt", "a") as file:
+                with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                     file.write("per-race (val): " + "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}" for k, vals in race_summary.items()]))
 
             if use_ssim:
@@ -285,6 +286,8 @@ def train(model,
                         "race_summary": race_summary,
                         "stage": stage_idx+1, "epoch": global_epoch
                     }
+                    if not os.path.exists(out_dir):
+                        os.makedirs(out_dir, exist_ok=True)
                     path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
                     torch.save(ckpt, path)
                     print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
@@ -297,6 +300,8 @@ def train(model,
                         "race_summary": race_summary,
                         "stage": stage_idx+1, "epoch": global_epoch
                     }
+                    if not os.path.exists(out_dir):
+                        os.makedirs(out_dir, exist_ok=True)
                     path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
                     torch.save(ckpt, path)
                     print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
@@ -319,13 +324,15 @@ if __name__ == "__main__":
         print("TrimResNet model selected, ensure input size is 112x112 due to internal structure.")
         assert sz == 112, "TrimResNet only supports input size of 112x112."
     print("Using device: ", device)
-    print(f"Logging to {"logs/training/{desc}.txt"} with configs - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
+    print(f"Logging to logs/training/{desc_path}{desc}.txt with configs:\n - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     
     if TRAINING:
         torch.autograd.set_detect_anomaly(True)
-        with open(f"logs/training/{desc}.txt", "a") as file:
+        if not os.path.exists(f"./logs/training/{desc_path}"):
+            os.makedirs(f"./logs/training/{desc_path}", exist_ok=True)
+        with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
             file.write(f"\n\n=== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} : {training_comment} ===\n")
             file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
             file.write(f"\nConfigs - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
@@ -349,7 +356,7 @@ if __name__ == "__main__":
             # print("Number of training samples: ", len(train_dataset))
             # print("Number of validation samples: ", len(val_dataset))
             print(f"\n=== Training with minority: {minority} ===")
-            with open(f"logs/training/{desc}.txt", "a") as file:
+            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                 file.write(f"\n=== Training with minority: {minority} ===\n")
                 # file.write(f"\nNumber of training samples: {len(train_dataset)}")
                 # file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")

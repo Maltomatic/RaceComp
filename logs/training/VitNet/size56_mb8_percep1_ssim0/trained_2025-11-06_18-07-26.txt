@@ -1,0 +1,8 @@
+
+
+=== 2025-11-06 18:07:26 : vit model testing size 56 for shape ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: VitNet, Image Size: 56, Batch size: 32, Microbatch steps: 8, Use Perceptual Loss: True, Use SSIM: False
+=== Training with minority: All ===
+
+--- Epoch 1 ---
