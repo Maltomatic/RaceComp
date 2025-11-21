@@ -11,9 +11,9 @@ classes = ['African', 'Asian', 'Caucasian', 'Indian']
 class_count = 4
 
 train_image_path = "./rfw_dataset/train/"
-val_image_path = "./rfw_dataset/val/"
+test_image_path = "./rfw_dataset/test/"
 train_label_path = "./rfw_dataset/train_labels.csv"
-val_label_path = "./rfw_dataset/val_labels.csv"
+test_label_path = "./rfw_dataset/test_labels.csv"
 
 class RFWDataset(Dataset):
     def __init__(self, 
