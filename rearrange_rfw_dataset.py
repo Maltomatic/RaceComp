@@ -1,12 +1,16 @@
 from pathlib import Path
 
 def main():
-    data_directory = Path("dataset")
+    data_directory = Path("rfw_dataset")
 
     with Path.open(data_directory / "train_labels.csv", "w") as f_train, \
          Path.open(data_directory / "val_labels.csv", "w") as f_val, \
          Path.open(data_directory / "test_labels.csv", "w") as f_test:
         files = {"train": f_train, "val": f_val, "test": f_test}
+
+        for split in ("train", "val", "test"):
+            (data_directory / split).mkdir(exist_ok=True)
+            files[split].write("file,person,race\n")
 
         for race_folder in (data_directory / "data").iterdir():
             race = race_folder.name
@@ -23,7 +27,7 @@ def main():
                 for image in folder.iterdir():
                     file_name = f"{race}_{image.name}"
                     image.rename(data_directory / split / file_name)
-                    f.write(f"{file_name},{race}\n")
+                    f.write(f"{file_name},{folder.name},{race}\n")
 
 if __name__ == "__main__":
     main()
