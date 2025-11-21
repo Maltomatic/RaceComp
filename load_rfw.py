@@ -10,10 +10,10 @@ from torch.utils.data import WeightedRandomSampler
 classes = ['African', 'Asian', 'Caucasian', 'Indian']
 class_count = 4
 
-train_image_path = "./dataset/train/"
-val_image_path = "./dataset/val/"
-train_label_path = "./dataset/train_labels.csv"
-val_label_path = "./dataset/val_labels.csv"
+train_image_path = "./rfw_dataset/train/"
+val_image_path = "./rfw_dataset/val/"
+train_label_path = "./rfw_dataset/train_labels.csv"
+val_label_path = "./rfw_dataset/val_labels.csv"
 
 class RFWDataset(Dataset):
     def __init__(self, 
@@ -25,15 +25,19 @@ class RFWDataset(Dataset):
         self.image_path = image_path
         df = pd.read_csv(label_path)
         self.file_path = df["file"]
-        self.labels_raw = df["race"]
+        self.persons = df["person"]
+        self.race_raw = df["race"]
 
-
-        cat = pd.Categorical(self.labels_raw, categories = classes, ordered = True)
-        idx = torch.tensor(pd.Series(cat.codes).values).long()
+        cat_race = pd.Categorical(self.race_raw, categories = classes, ordered = True)
+        idx_race = torch.tensor(pd.Series(cat_race.codes).values).long()
         # One-hot encode the labels
-        self.labels = torch.nn.functional.one_hot(idx, num_classes=class_count)
+        self.labels_race = torch.nn.functional.one_hot(idx_race, num_classes=class_count)
         #print(self.labels.shape)
         #print(self.labels)
+
+        cat_person = pd.Categorical(self.persons)
+        idx_person = torch.tensor(pd.Series(cat_person.codes).values).long()
+        self.labels_person = torch.nn.functional.one_hot(idx_person, num_classes=len(cat_person.categories))
 
         norm = None
         if(normalize):
@@ -57,7 +61,7 @@ class RFWDataset(Dataset):
         ]
 
     def __len__(self):
-        return len(self.labels)*len(self.augs)
+        return len(self.labels_race)*len(self.augs)
 
     def __getitem__(self, idx):
         img_idx = idx // len(self.augs)
@@ -73,29 +77,20 @@ class RFWDataset(Dataset):
             image = augmentation(image)
             # print(f"Applied augmentation: {augmentation}")
 
-        label_str = self.labels_raw.iloc[img_idx]
-        label = self.labels[img_idx]
-        downsample = self.transform(image)
-        downsample = self.norm(downsample)
+        race_str = self.race_raw.iloc[img_idx]
+        race = self.labels_race[img_idx]
+        person = self.labels_person[img_idx]
         image = self.norm(image)
-        # print("Debug: After norm:", downsample.shape, downsample.dtype)
-        # print("Debug: Before transform:", image.shape, image.dtype)
-        if(downsample.shape[1] != 400 or downsample.shape[2] != 400):
-            downsample = torchvision.transforms.Resize((400,400))(downsample)
-        # if not float tensor:
-        if downsample.dtype != torch.float:
-            downsample = torchvision.transforms.ConvertImageDtype(torch.float)(downsample)
-        # print("Debug: After transform:", downsample.shape, downsample.dtype)
 
-        return downsample, image, label, label_str
+        return image, person, race, race_str
 
 if __name__ == "__main__":
     dataset = RFWDataset(train_image_path, train_label_path)
     dataloader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=2)
 
-    for downsample, src, labels, label_str in dataloader:
-        print("Batch of testing images shape: ", downsample.shape)
-        print("Batch of source images shape: ", src.shape)
-        print("Batch of labels shape: ", labels.shape)
-        print("Length for batch of label strings: ", len(label_str))
+    for image, person, race, race_str in dataloader:
+        print("Images shape: ", image.shape)
+        print("Batch of person IDs shape: ", person.shape)
+        print("Batch of races shape: ", race.shape)
+        print("Length for batch of race strings: ", len(race_str))
         break
