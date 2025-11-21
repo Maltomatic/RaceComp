@@ -22,6 +22,7 @@ def race_weighted_sampler(dataset, race_weights, num_samples, seed=42):
         race = base_labels.iloc[img_idx]
         w = float(race_weights.get(race, 1.0))
         weights.extend([w] * num_augs)
+    # print(weights)
 
     weights = torch.as_tensor(weights, dtype=torch.double)
     assert len(weights) == len(dataset)
@@ -108,8 +109,21 @@ class FairFaceDataset(Dataset):
         return downsample, image, label, label_str
 
 if __name__ == "__main__":
+    race_weights = {
+        "East Asian": 0.2,
+        "Indian": 1.0,
+        "Black": 1.0,
+        "White": 1.0,
+        "Middle Eastern": 1.0,
+        "Latino_Hispanic": 1.0,
+        "Southeast Asian": 1.0,
+    }
+    minority = 'Middle Eastern'
+    rm = {r: (0.05 if r == minority else 1.0) for r in race_weights.keys()}
+
     dataset = FairFaceDataset(train_image_path, train_label_path, lr_size = (56, 56))
-    dataloader = DataLoader(dataset, batch_size=32, shuffle=True, num_workers=2)
+    sampler = race_weighted_sampler(dataset, rm, num_samples=len(dataset), seed=42)
+    dataloader = DataLoader(dataset, batch_size=32, shuffle=True, sampler=sampler, num_workers=2)
 
     for downsample, src, labels, label_str in dataloader:
         print("Batch of testing images shape: ", downsample.shape)

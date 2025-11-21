@@ -13,15 +13,23 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.io import decode_image
 import math
 import time
+import copy
 from datetime import datetime
 from collections import defaultdict
 from torch.cuda.amp import autocast, GradScaler
 from torchvision.models import vgg19, VGG19_Weights
 import torch.nn.functional as F
 
-from load import FairFaceDataset
-from load import race_weighted_sampler
-from load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
+trim_dataset = True
+if(trim_dataset):
+    from loaders.load_redux import FairFaceDataset_Trim as FairFaceDataset
+    print("Using FairFaceDataset_Trim from load_redux.py")
+    from loaders.load_redux import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
+else:
+    from loaders.load import FairFaceDataset
+    print("Using FairFaceDataset from load.py")
+    from loaders.load import race_weighted_sampler
+    from loaders.load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
 
 from models.cnn_56_interNet import Resnet_Interpolate_Upscaler as InterNet
 from models.cnn_56_bridged_unet import Resnet_upscaler as UResNet
@@ -39,19 +47,21 @@ H_h = W_h = 224
 
 #################### configs #################### 
 TRAINING = True
+resume = False
 training_comment = "vit model testing size 56 for shape"
 
-model_idx = 0
+model_idx = 2
 # idx:
     # 0 - VitNet
     # 1 - InterNet
     # 2 - UResNet
     # 3 - TrimResNet
-train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
+# train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
+train_list = ["Indian", "East Asian", "All"]
 use_percep = True
 perc = 0.1
 use_ssim = False
-microbatches = 8 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
+microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 sz = 56 # or 56
 epoch_stages = (2, 1, 0, 0) if sz == 112 else (2, 2, 0, 0)
 
@@ -112,6 +122,16 @@ def accumulate_by_race(bucket, race, loss, psnr_val, ssim_val):
     b = bucket.setdefault(race, {"loss": [], "psnr": [], "ssim": []})
     b["loss"].append(loss); b["psnr"].append(psnr_val); b["ssim"].append(ssim_val)
 
+#keyboard interrupt checkpointing params:
+ckpt_epoch = -1
+ckpt_batch = -1
+ckpt_stage = -1
+ckpt_race = ""
+ckpt_model_state = None
+ckpt_optim_state = None
+ckpt_scheduler_state = None
+ckpt_tr = None
+
 def train(model, 
           train_loader, 
           val_loader, 
@@ -139,175 +159,217 @@ def train(model,
     best_val_loss = float('inf')
     global_epoch = 0
 
-    for stage_idx, layer_list in enumerate(stages):
-        # Unfreeze policy
-        for name in ["entry","enc1","enc2","enc3","enc4"]:
-            m = getattr(model, name, None)
-            if m is not None:
-                for param in m.parameters():
-                    param.requires_grad = False
-            for name in layer_list:
+    if(resume):
+        svpt = torch.load('savepoints/ckpt.pt', weights_only=False)
+
+        print("Verifying checkpoint keys: ", svpt.keys())
+        model.load_state_dict(svpt['model_state'])
+        print("Resumed model state from savepoint.")
+        print(f"Please ensure testing minority is {svpt["race"]}")
+    try:
+        for stage_idx, layer_list in enumerate(stages):
+            # Unfreeze policy
+            for name in ["entry","enc1","enc2","enc3","enc4"]:
                 m = getattr(model, name, None)
                 if m is not None:
                     for param in m.parameters():
-                        param.requires_grad = True  
-            # decoder always trainable
-            enc_names = {"entry","enc1","enc2","enc3","enc4"}
-            for name, m in model.named_children():
-                if name not in enc_names:
-                    for param in m.parameters():
-                        param.requires_grad = True
-        total_epochs = epochs_per_stage[stage_idx]
-        optimizer = torch.optim.AdamW(make_param_groups(model, lr, dec_mult=1.0, enc_mult=0.25), weight_decay=1e-4)
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, total_epochs * math.ceil(len(train_loader) / microbatch_steps)))
+                        param.requires_grad = False
+                for name in layer_list:
+                    m = getattr(model, name, None)
+                    if m is not None:
+                        for param in m.parameters():
+                            param.requires_grad = True  
+                # decoder always trainable
+                enc_names = {"entry","enc1","enc2","enc3","enc4"}
+                for name, m in model.named_children():
+                    if name not in enc_names:
+                        for param in m.parameters():
+                            param.requires_grad = True
+            total_epochs = epochs_per_stage[stage_idx]
+            optimizer = torch.optim.AdamW(make_param_groups(model, lr, dec_mult=1.0, enc_mult=0.25), weight_decay=1e-4)
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=max(1, total_epochs * math.ceil(len(train_loader) / microbatch_steps)))
+            if(resume and stage_idx == svpt["stage"]):
+                optimizer.load_state_dict(svpt['optim_state'])
+                scheduler.load_state_dict(svpt['scheduler_state'])
+                global_epoch = svpt['epoch'] - 1
+                n_batches = svpt['batch']
+                tr = svpt['losses']
+                print(f"Resumed optimizer and scheduler state from savepoint at stage {svpt["stage"]}, epoch {global_epoch}, batch {n_batches}.")
+            elif (resume and stage_idx < svpt["stage"]):
+                continue  # skip earlier stages if resuming
 
-        print(f"\n=== Stage {stage_idx+1}/{len(stages)} | Unfrozen: {layer_list} ===")
+            print(f"\n=== Stage {stage_idx+1}/{len(stages)} | Unfrozen: {layer_list} ===")
 
-        for e in range(total_epochs):
-            print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
-            global_epoch += 1
-            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                file.write(f"\n--- Epoch {global_epoch} ---\n")
-            model.train()
-            optimizer.zero_grad(set_to_none=True)
-            tr = defaultdict(float); n_batches = 0
-
-            for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
-                if(n_batches % 100 == 0):
-                    print(f"Training batch {n_batches + 1}/{len(train_loader)}")
-
-                Y_img = Y_img.to(device).float()
-                X_img = X_img.to(device).float()
-
-                with torch.amp.autocast(device_type, enabled=True):
-                    # print("Debug: Input shapes:", X_img.shape, Y_img.shape)
-                    pred = model(X_img)
-                    pixel_loss = criterion(pred, Y_img)
-                    if use_perceptual:
-                        with torch.amp.autocast(device_type, enabled = True):
-                            perc_loss = perceptual_criterion(pred, Y_img)
-                        # loss = pixel_loss + lambda_perc * perc_loss
-                        loss = perc_loss + lambda_perc * pixel_loss
-                    else:
-                        loss = pixel_loss
-                    loss = loss / microbatch_steps  # Scale loss for gradient accumulation
-
-                scaler.scale(loss).backward()
-
-                if((n_batches + 1) % microbatch_steps == 0 or (n_batches + 1) == len(train_loader)):
-                    scaler.unscale_(optimizer)
-                    nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-
-                    scaler.step(optimizer)
-                    scaler.update()
-                    optimizer.zero_grad(set_to_none=True)
-
-                    scheduler.step()
+            for e in range(global_epoch, total_epochs):
+                global_epoch += 1
+                print(f"\n--- Epoch {global_epoch}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
                 
-                if n_batches % 400 == 0 and use_perceptual:
-                    print(f"pixel={pixel_loss.item():.4f}  perc={perc_loss.item():.4f}  tot={(loss.item() * microbatch_steps):.4f}")
+                with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                    file.write(f"\n--- Epoch {global_epoch} || time: {datetime.now().strftime("%H:%M:%S")} --- \n")
+                model.train()
+                if(not resume):
+                    optimizer.zero_grad(set_to_none=True)
+                    tr = defaultdict(float); n_batches = 0
+                resume = False
 
-                pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
-                targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
-                tr["loss"] += loss.item() * microbatch_steps # unscale the loss
-                tr["psnr"] += psnr(pred_vis, targ_vis).mean().item()
-                tr["ssim"] += ssim_simple(pred_vis, targ_vis).mean().item()
-
-                n_batches += 1
-                if(n_batches % 400 == 1):
-                    print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                        f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
-                    print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
-                    with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                        file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
-                                f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
-
-            print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                  f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
-            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                           f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
-            
-            model.eval()
-            print("==Validation:==")
-            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                file.write("==Validation:==\n")
-            v = defaultdict(float); n_val = 0; race_bucket = {}
-            with torch.no_grad():
-                for X_img, Y_img, labels, label_str in val_loader:
+                for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
                     Y_img = Y_img.to(device).float()
                     X_img = X_img.to(device).float()
 
-                    pred = model(X_img)
-                    val_pixel = criterion(pred, Y_img)
-                    if use_perceptual:
-                        with torch.amp.autocast(device_type, enabled = True):
-                            val_perc = perceptual_criterion(pred, Y_img)
-                        # val_loss = val_pixel + lambda_perc * val_perc
-                        val_loss = val_perc + lambda_perc * val_pixel
-                    else:
-                        val_loss = val_pixel
+                    with torch.amp.autocast(device_type, enabled=True):
+                        # print("Debug: Input shapes:", X_img.shape, Y_img.shape)
+                        pred = model(X_img)
+                        pixel_loss = criterion(pred, Y_img)
+                        if use_perceptual:
+                            with torch.amp.autocast(device_type, enabled = True):
+                                perc_loss = perceptual_criterion(pred, Y_img)
+                            # loss = pixel_loss + lambda_perc * perc_loss
+                            loss = perc_loss + lambda_perc * pixel_loss
+                        else:
+                            loss = pixel_loss
+                        loss = loss / microbatch_steps  # Scale loss for gradient accumulation
+
+                    scaler.scale(loss).backward()
+
+                    if((n_batches + 1) % microbatch_steps == 0 or (n_batches + 1) == len(train_loader)):
+                        scaler.unscale_(optimizer)
+                        nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+                        scaler.step(optimizer)
+                        scaler.update()
+                        optimizer.zero_grad(set_to_none=True)
+
+                        scheduler.step()
+                    
+                    if n_batches % 120 == 0 and use_perceptual:
+                        print(f"pixel={pixel_loss.item():.4f}  perc={perc_loss.item():.4f}  tot={(loss.item() * microbatch_steps):.4f}")
 
                     pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
                     targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
-                    v_psnr = psnr(pred_vis, targ_vis).mean().item()
-                    v_ssim = ssim_simple(pred_vis, targ_vis).mean().item()
+                    tr["loss"] += loss.item() * microbatch_steps # unscale the loss
+                    tr["psnr"] += psnr(pred_vis, targ_vis).mean().item()
+                    tr["ssim"] += ssim_simple(pred_vis, targ_vis).mean().item()
 
-                    v["loss"] += val_loss.item()
-                    v["psnr"] += v_psnr
-                    v["ssim"] += v_ssim
-                    n_val += 1
+                    n_batches += 1
+                    if(n_batches % 120 == 1):
+                        print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
+                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
+                        print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
+                        with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                            file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
+                                    f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
 
-                    for r in label_str:
-                        accumulate_by_race(race_bucket, r, val_loss.item(), v_psnr, v_ssim)
-
-            val_loss = v["loss"]/n_val
-            val_psnr = v["psnr"]/n_val
-            val_ssim = v["ssim"]/n_val
-            print(f"           val:   loss {val_loss:.4f}  PSNR {val_psnr:.2f}  SSIM {val_ssim:.4f}")
-
-            race_summary = {}
-            for k, v in race_bucket.items():
-                race_summary[k] = {m: float(np.mean(vals)) if len(vals)>0 else float('nan') for m, vals in v.items()}
-            
-            if race_summary:
-                print("           per-race (val):",
-                      "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}"
-                                 for k, vals in race_summary.items()]))
+                print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
+                    f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                    file.write("per-race (val): " + "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}" for k, vals in race_summary.items()]))
+                    file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
+                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
+                
+                model.eval()
+                print(f"==Validation: || time: {datetime.now().strftime("%H:%M:%S")} ==")
+                with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                    file.write(f"==Validation: || time: {datetime.now().strftime("%H:%M:%S")} ==\n")
+                v = defaultdict(float); n_val = 0; race_bucket = {}
+                with torch.no_grad():
+                    for X_img, Y_img, labels, label_str in val_loader:
+                        Y_img = Y_img.to(device).float()
+                        X_img = X_img.to(device).float()
 
-            if use_ssim:
-                if val_ssim > best_val_ssim:
-                    best_val_ssim = val_ssim
-                    ckpt = {
-                        "model": model.state_dict(),
-                        "val_loss": val_loss, "val_psnr": val_psnr, "val_ssim": val_ssim,
-                        "race_summary": race_summary,
-                        "stage": stage_idx+1, "epoch": global_epoch
-                    }
-                    if not os.path.exists(out_dir):
-                        os.makedirs(out_dir, exist_ok=True)
-                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
-                    torch.save(ckpt, path)
-                    print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
-            else:
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    ckpt = {
-                        "model": model.state_dict(),
-                        "val_loss": val_loss, "val_psnr": val_psnr, "val_ssim": val_ssim,
-                        "race_summary": race_summary,
-                        "stage": stage_idx+1, "epoch": global_epoch
-                    }
-                    if not os.path.exists(out_dir):
-                        os.makedirs(out_dir, exist_ok=True)
-                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
-                    torch.save(ckpt, path)
-                    print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
+                        pred = model(X_img)
+                        val_pixel = criterion(pred, Y_img)
+                        if use_perceptual:
+                            with torch.amp.autocast(device_type, enabled = True):
+                                val_perc = perceptual_criterion(pred, Y_img)
+                            # val_loss = val_pixel + lambda_perc * val_perc
+                            val_loss = val_perc + lambda_perc * val_pixel
+                        else:
+                            val_loss = val_pixel
+
+                        pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
+                        targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
+                        v_psnr = psnr(pred_vis, targ_vis).mean().item()
+                        v_ssim = ssim_simple(pred_vis, targ_vis).mean().item()
+
+                        v["loss"] += val_loss.item()
+                        v["psnr"] += v_psnr
+                        v["ssim"] += v_ssim
+                        n_val += 1
+
+                        for r in label_str:
+                            accumulate_by_race(race_bucket, r, val_loss.item(), v_psnr, v_ssim)
+
+                val_loss = v["loss"]/n_val
+                val_psnr = v["psnr"]/n_val
+                val_ssim = v["ssim"]/n_val
+                print(f"           val:   loss {val_loss:.4f}  PSNR {val_psnr:.2f}  SSIM {val_ssim:.4f}")
+
+                race_summary = {}
+                for k, v in race_bucket.items():
+                    race_summary[k] = {m: float(np.mean(vals)) if len(vals)>0 else float('nan') for m, vals in v.items()}
+                
+                if race_summary:
+                    print("           per-race (val):",
+                        "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}"
+                                    for k, vals in race_summary.items()]))
+                    with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                        file.write("per-race (val): " + "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}" for k, vals in race_summary.items()]))
+
+                if use_ssim:
+                    if val_ssim > best_val_ssim:
+                        best_val_ssim = val_ssim
+                        ckpt = {
+                            "model": model.state_dict(),
+                            "val_loss": val_loss, "val_psnr": val_psnr, "val_ssim": val_ssim,
+                            "race_summary": race_summary,
+                            "stage": stage_idx+1, "epoch": global_epoch
+                        }
+                        if not os.path.exists(out_dir):
+                            os.makedirs(out_dir, exist_ok=True)
+                        path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
+                        torch.save(ckpt, path)
+                        print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
+                else:
+                    if val_loss < best_val_loss:
+                        best_val_loss = val_loss
+                        ckpt = {
+                            "model": model.state_dict(),
+                            "val_loss": val_loss, "val_psnr": val_psnr, "val_ssim": val_ssim,
+                            "race_summary": race_summary,
+                            "stage": stage_idx+1, "epoch": global_epoch
+                        }
+                        if not os.path.exists(out_dir):
+                            os.makedirs(out_dir, exist_ok=True)
+                        path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
+                        torch.save(ckpt, path)
+                        print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
+            del optimizer
+            del scheduler
+    except:
+        print("Save checkpoint before quitting? (y/n)")
+        if(input().lower().startswith('y')):
+            if not os.path.exists('savepoints'):
+                os.makedirs('savepoints', exist_ok=True)
+            ckpt_epoch = global_epoch
+            ckpt_stage = stage_idx
+            ckpt_batch = n_batches
+            ckpt_race = minority
+            ckpt_model_state = model.state_dict()
+            ckpt_optim_state = optimizer.state_dict()
+            ckpt_scheduler_state = scheduler.state_dict()
+            ckpt_tr = tr
+            torch.save({
+                "model_state": ckpt_model_state,
+                "optim_state": ckpt_optim_state,
+                "scheduler_state": ckpt_scheduler_state,
+                "epoch": ckpt_epoch,
+                "batch": ckpt_batch,
+                "stage": ckpt_stage,
+                "race": ckpt_race,
+                "losses": ckpt_tr
+            }, f'savepoints/ckpt_s{ckpt_stage}_e{ckpt_epoch}_b{ckpt_batch}.pt')
+        raise
+
         
-        del optimizer
-        del scheduler
 
 race_weights = {
     "East Asian": 0.2,
@@ -337,21 +399,30 @@ if __name__ == "__main__":
             file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
             file.write(f"\nConfigs - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
 
-
-        train_dataset = FairFaceDataset(train_image_path, train_label_path, lr_size=(sz, sz))
+        if(not trim_dataset):
+           train_dataset = FairFaceDataset(train_image_path, train_label_path, lr_size=(sz, sz))
+           train_loader = None
         val_dataset = FairFaceDataset(val_image_path, val_label_path, lr_size=(sz, sz))
-        train_loader = None #DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
-        val_loader = DataLoader(val_dataset, batch_size=B, shuffle=False, num_workers=8, pin_memory=True)
+        val_loader = DataLoader(val_dataset, batch_size=B, shuffle=trim_dataset, num_workers=8, pin_memory=True)
 
         for minority in train_list:
-            model = Modelnet.to(device)
-            rm = None
-            if minority == "All":
-                rm = {r: 1.0 for r in race_weights.keys()}
+            model = copy.deepcopy(Modelnet)
+            for par1, par2 in zip(model.parameters(), Modelnet.parameters()):
+                assert torch.allclose(par1, par2), "Model copy failed!"
+            model.to(device)
+            print(f"Created copy of {model_type} initialized for training.")
+
+            if(not trim_dataset):
+                rm = None
+                if minority == "All":
+                    rm = {r: 1.0 for r in race_weights.keys()}
+                else:
+                    rm = {r: (under_represented_ratio if r == minority else 1.0) for r in race_weights.keys()}
+                sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
+                train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
             else:
-                rm = {r: (under_represented_ratio if r == minority else 1.0) for r in race_weights.keys()}
-            sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
-            train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
+                train_dataset = FairFaceDataset(train_image_path, train_label_path, lr_size = (sz, sz), minority=minority, minority_weight=under_represented_ratio)
+                train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
 
             # print("Number of training samples: ", len(train_dataset))
             # print("Number of validation samples: ", len(val_dataset))
@@ -411,5 +482,3 @@ if __name__ == "__main__":
         output_img = denormalize_imagenet(pred.squeeze(0).cpu()).permute(1, 2, 0).numpy()
         output_pil = Image.fromarray(output_img)
         output_pil.save(f"test_files/outputs/{model_type}_output_{testpath}.png")
-
-# TODO: gradient accumulation, checkpoint save on keyboard interrupt
