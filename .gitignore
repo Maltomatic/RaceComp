@@ -11,4 +11,8 @@
 **__pycache__/
 *.ipynb_checkpoints
 /apple_fastvit
-/dataset/
+/dataset/fairface-img**
+/dataset/RFW/all/
+/dataset/RFW/train/
+/dataset/RFW/test/
+/dataset/rfw_src/

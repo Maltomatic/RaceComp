@@ -27,3 +27,4 @@ Batch 4001 at time 02:31:01 | train: loss 5.4834  PSNR 26.03  SSIM 0.9576
 Batch 6001 at time 02:46:05 | train: loss 5.4515  PSNR 26.14  SSIM 0.9587
 Batch 8001 at time 03:00:47 | train: loss 5.4214  PSNR 26.24  SSIM 0.9596
 Batch 10001 at time 03:15:01 | train: loss 5.3991  PSNR 26.33  SSIM 0.9604
+Batch 12001 at time 03:29:29 | train: loss 5.3779  PSNR 26.41  SSIM 0.9610
