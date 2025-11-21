@@ -1,0 +1,6 @@
+
+
+=== 2025-11-20 23:56:34 : UResNet formal train ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Image Size: 56, Batch size: 32, Microbatch steps: 4, Use Perceptual Loss: True, Use SSIM: False
+=== Training with minority: All ===

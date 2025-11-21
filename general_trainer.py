@@ -47,8 +47,9 @@ H_h = W_h = 224
 
 #################### configs #################### 
 TRAINING = True
+debug = False
 resume = False
-training_comment = "vit model testing size 56 for shape"
+training_comment = "UResNet formal train"
 
 model_idx = 2
 # idx:
@@ -57,7 +58,7 @@ model_idx = 2
     # 2 - UResNet
     # 3 - TrimResNet
 # train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
-train_list = ["Indian", "East Asian", "All"]
+train_list = ["All", "East Asian", "Indian"]
 use_percep = True
 perc = 0.1
 use_ssim = False
@@ -122,16 +123,6 @@ def accumulate_by_race(bucket, race, loss, psnr_val, ssim_val):
     b = bucket.setdefault(race, {"loss": [], "psnr": [], "ssim": []})
     b["loss"].append(loss); b["psnr"].append(psnr_val); b["ssim"].append(ssim_val)
 
-#keyboard interrupt checkpointing params:
-ckpt_epoch = -1
-ckpt_batch = -1
-ckpt_stage = -1
-ckpt_race = ""
-ckpt_model_state = None
-ckpt_optim_state = None
-ckpt_scheduler_state = None
-ckpt_tr = None
-
 def train(model, 
           train_loader, 
           val_loader, 
@@ -142,7 +133,8 @@ def train(model,
           microbatch_steps = 8,
           use_perceptual = True,
           use_ssim = True,
-          perc = 0.1):
+          perc = 0.1,
+          resume = False):
 
     os.makedirs(out_dir, exist_ok=True)
     model = model.to(device)
@@ -158,6 +150,7 @@ def train(model,
     best_val_ssim = -1.0
     best_val_loss = float('inf')
     global_epoch = 0
+    start_epoch = 0
 
     if(resume):
         svpt = torch.load('savepoints/ckpt.pt', weights_only=False)
@@ -191,18 +184,23 @@ def train(model,
             if(resume and stage_idx == svpt["stage"]):
                 optimizer.load_state_dict(svpt['optim_state'])
                 scheduler.load_state_dict(svpt['scheduler_state'])
-                global_epoch = svpt['epoch'] - 1
+                start_epoch = svpt['epoch'] - 1
+                global_epoch += start_epoch
                 n_batches = svpt['batch']
                 tr = svpt['losses']
                 print(f"Resumed optimizer and scheduler state from savepoint at stage {svpt["stage"]}, epoch {global_epoch}, batch {n_batches}.")
             elif (resume and stage_idx < svpt["stage"]):
+                print(f"Skipping stage {stage_idx}, resume savepoint at stage {svpt['stage']}.")
+                global_epoch += total_epochs
                 continue  # skip earlier stages if resuming
 
             print(f"\n=== Stage {stage_idx+1}/{len(stages)} | Unfrozen: {layer_list} ===")
+            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                file.write(f"\n=== Stage {stage_idx+1}/{len(stages)} | Unfrozen: {layer_list} ===\n")
 
-            for e in range(global_epoch, total_epochs):
+            for e in range(start_epoch, total_epochs):
                 global_epoch += 1
-                print(f"\n--- Epoch {global_epoch}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
+                print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
                 
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                     file.write(f"\n--- Epoch {global_epoch} || time: {datetime.now().strftime("%H:%M:%S")} --- \n")
@@ -211,6 +209,10 @@ def train(model,
                     optimizer.zero_grad(set_to_none=True)
                     tr = defaultdict(float); n_batches = 0
                 resume = False
+
+                if(debug):
+                    print("Debug: Skipping training loop in debug mode.")
+                    continue
 
                 for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
                     Y_img = Y_img.to(device).float()
@@ -251,10 +253,11 @@ def train(model,
                     tr["ssim"] += ssim_simple(pred_vis, targ_vis).mean().item()
 
                     n_batches += 1
-                    if(n_batches % 120 == 1):
+                    if(n_batches % 200 == 1):
                         print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
                             f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
                         print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
+                    if(n_batches % 2000 == 1):
                         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                             file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
                                     f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
@@ -453,6 +456,10 @@ if __name__ == "__main__":
                 microbatch_steps = microbatches,
                 perc = perc
             )
+
+            print(f"Finished training for minority: {minority}, releasing model from GPU.\n\n")
+            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                file.write(f"\nFinished training for minority: {minority}.\n\n")
 
             del model
             torch.cuda.empty_cache()
