@@ -19,22 +19,11 @@ from collections import defaultdict
 from torch.cuda.amp import autocast, GradScaler
 from torchvision.models import vgg19, VGG19_Weights
 import torch.nn.functional as F
+from loaders.load_rfw import RFWDataset
+from loaders.load_rfw import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
 
-trim_dataset = True
-if(trim_dataset):
-    from loaders.load_redux import FairFaceDataset_Trim as FairFaceDataset
-    print("Using FairFaceDataset_Trim from load_redux.py")
-    from loaders.load_redux import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
-else:
-    from loaders.load import FairFaceDataset
-    print("Using FairFaceDataset from load.py")
-    from loaders.load import race_weighted_sampler
-    from loaders.load import classes, class_count, train_image_path, train_label_path, val_image_path, val_label_path
-
-from models.cnn_56_interNet import Resnet_Interpolate_Upscaler as InterNet
-from models.cnn_56_bridged_unet import Resnet_upscaler as UResNet
-from models.cnn_abridged_unet import Resnet_upscaler_trim as TrimResNet
-from models.vit_56 import VitUpscaler as VitNet
+from models.cnn_UNet_FR import ResUnetFR as UResNet
+from models.vit_FR import ViTFR as VitNet
 
 from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
 from toolkit.debugs import denormalize_imagenet
@@ -42,46 +31,37 @@ from toolkit.criteria import psnr, ssim_simple
 
 B = 32
 C = 3
-H_l = W_l = 112
-H_h = W_h = 224
+H = W = 224
 
 #################### configs #################### 
 TRAINING = True
 debug = False
-resume = True
-training_comment = "UResNet formal train"
+resume = False
+training_comment = "FR training"
 
 model_idx = 2
 # idx:
     # 0 - VitNet
-    # 1 - InterNet
-    # 2 - UResNet
-    # 3 - TrimResNet
-# train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
-train_list = ["East Asian", "Indian"]
-use_percep = True
-perc = 0.1
-use_ssim = False
+    # 1 - UResNet
+train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
+# train_list = ["East Asian", "Indian"]
 microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
-sz = 56 # or 56
-epoch_stages = (2, 1, 0, 0) if sz == 112 else (2, 2, 0, 0)
+sz = 224 # or 56
+epoch_stages = (2, 2, 0, 0)
 
 under_represented_ratio = 0.05
 tgt_race = "All"
 test_stage = 2
 test_epoch = 3
 
-config_str = f"size{sz}_mb{microbatches}_percep{int(use_percep)}_ssim{int(use_ssim)}"
+config_str = f"batchsize{B}_mb{microbatches}"
 #################################################
-model_names = ["VitNet", "InterNet", "UResNet", "TrimResNet"]
+model_names = ["VitNet", "UResNet"]
 
-Modelnet = VitNet(base_model = "fastvit_ma36", factor = 2,
-                  input_shape=(3, sz, sz), out_shape = (3, 224, 224)) if model_idx == 0 else \
-           InterNet(px_shuffle=False, px_shuffle_interpolate=True,
-                    px_buffer = True, px_out=False, downsampler = True,
-                    input_shape=(3, sz, sz)) if model_idx == 1 else \
-           UResNet(px_shuffle = True, input_shape = (3, sz, sz)) if model_idx == 2 else \
-           TrimResNet(output_size=(224,224), px_shuffle = True)
+nm = 1000
+
+Modelnet = VitNet(input_shape = (3, sz, sz), num_classes = nm) if model_idx == 0 else \
+           UResNet(input_shape = (3, 224, 224), num_classes = nm) 
 model_type = model_names[model_idx]
 desc_path = f"{model_type}/{config_str}/"
 desc = f"trained_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}"
@@ -391,7 +371,7 @@ def train(model,
         
 
 race_weights = {
-    "East Asian": 0.2,
+    "East Asian": 1.0,
     "Indian": 1.0,
     "Black": 1.0,
     "White": 1.0,
@@ -401,11 +381,8 @@ race_weights = {
 }
 
 if __name__ == "__main__":
-    if(model_type == "TrimResNet"):
-        print("TrimResNet model selected, ensure input size is 112x112 due to internal structure.")
-        assert sz == 112, "TrimResNet only supports input size of 112x112."
     print("Using device: ", device)
-    print(f"Logging to logs/training/{desc_path}{desc}.txt with configs:\n - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
+    print(f"Logging to logs/training/{desc_path}{desc}.txt with configs:\n - Model: {model_type}, Batch size: {B}, Microbatch steps: {microbatches}")
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     
@@ -416,32 +393,24 @@ if __name__ == "__main__":
         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
             file.write(f"\n\n=== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} : {training_comment} ===\n")
             file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
-            file.write(f"\nConfigs - Model: {model_type}, Image Size: {sz}, Batch size: {B}, Microbatch steps: {microbatches}, Use Perceptual Loss: {use_percep}, Use SSIM: {use_ssim}")
-
-        if(not trim_dataset):
-           train_dataset = FairFaceDataset(train_image_path, train_label_path, lr_size=(sz, sz))
-           train_loader = None
-        val_dataset = FairFaceDataset(val_image_path, val_label_path, lr_size=(sz, sz))
-        val_loader = DataLoader(val_dataset, batch_size=B, shuffle=trim_dataset, num_workers=8, pin_memory=True)
+            file.write(f"\nConfigs - Model: {model_type}, Batch size: {B}, Microbatch steps: {microbatches}")
 
         for minority in train_list:
             model = copy.deepcopy(Modelnet)
             for par1, par2 in zip(model.parameters(), Modelnet.parameters()):
                 assert torch.allclose(par1, par2), "Model copy failed!"
+            #load racially biased weights with strict=False to allow partial loading
+            race_ckpt = torch.load(f"checkpoints/{model_type}/config_{config_str}/best_overall.pt", map_location=device)
+            model.load_state_dict(race_ckpt["model"], strict = False)
+
             model.to(device)
             print(f"Created copy of {model_type} initialized for training.")
 
-            if(not trim_dataset):
-                rm = None
-                if minority == "All":
-                    rm = {r: 1.0 for r in race_weights.keys()}
-                else:
-                    rm = {r: (under_represented_ratio if r == minority else 1.0) for r in race_weights.keys()}
-                sampler = race_weighted_sampler(train_dataset, rm, num_samples=len(train_dataset), seed=42)
-                train_loader = DataLoader(train_dataset, batch_size=B, shuffle=False, sampler=sampler, num_workers=8, pin_memory=True)
-            else:
-                train_dataset = FairFaceDataset(train_image_path, train_label_path, lr_size = (sz, sz), minority=minority, minority_weight=under_represented_ratio)
-                train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
+# //// TODO from here
+            train_dataset = RFWDataset(train_image_path, train_label_path)
+            train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
+            val_dataset = RFWDataset(val_image_path, val_label_path,)
+            val_loader = DataLoader(val_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
 
             # print("Number of training samples: ", len(train_dataset))
             # print("Number of validation samples: ", len(val_dataset))

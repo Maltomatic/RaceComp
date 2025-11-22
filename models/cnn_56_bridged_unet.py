@@ -24,7 +24,7 @@ class Resnet_upscaler(nn.Module):
     def __init__(self, px_shuffle = True, input_shape = (3, 112, 112)):
         "Model structure: take 3*112*112 tensor, upscale to 3*224*224 tensor"
         super().__init__()
-        self.large = True if input_shape== (3, 112, 112) else False
+        self.large = False if input_shape == (3, 56, 56) else True
         self.prepare = conv_block(3, 32, ker=3, pad=1)
         self.resnet = torchvision.models.resnet.resnet50(weights=torchvision.models.ResNet50_Weights.IMAGENET1K_V2)
 
@@ -188,6 +188,7 @@ if __name__ == "__main__":
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     model = Resnet_upscaler(input_shape=(3, 56, 56)).to(device)
     # summary(model, (3, 112, 112))
+    print(model)
     x = torch.randn(1, 3, 56, 56)
     y = model(x.to(device))
     print("Input:", x.shape, "Output:", y.shape)

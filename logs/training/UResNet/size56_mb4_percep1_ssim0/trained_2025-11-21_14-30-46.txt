@@ -1,0 +1,17 @@
+
+
+=== 2025-11-21 14:30:46 : UResNet formal train ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Image Size: 56, Batch size: 32, Microbatch steps: 4, Use Perceptual Loss: True, Use SSIM: False
+=== Training with minority: East Asian ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 14:31:22 --- 
+Batch 001 at time 14:31:53 | train: loss 15.5209  PSNR 11.51  SSIM 0.0246
+Batch 2001 at time 14:48:59 | train: loss 12.7009  PSNR 12.30  SSIM 0.1826
+Batch 4001 at time 15:03:26 | train: loss 10.8004  PSNR 14.50  SSIM 0.4633
+Batch 6001 at time 15:20:36 | train: loss 9.8161  PSNR 15.78  SSIM 0.5861
+Batch 8001 at time 15:36:03 | train: loss 9.1306  PSNR 16.92  SSIM 0.6572
+Batch 10001 at time 15:51:34 | train: loss 8.6103  PSNR 17.98  SSIM 0.7057
+Batch 12001 at time 16:11:38 | train: loss 8.2264  PSNR 18.84  SSIM 0.7412

@@ -1,0 +1,10 @@
+
+
+=== 2025-11-21 16:48:45 : UResNet formal train ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Image Size: 56, Batch size: 32, Microbatch steps: 4, Use Perceptual Loss: True, Use SSIM: False
+=== Training with minority: East Asian ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 16:49:17 --- 

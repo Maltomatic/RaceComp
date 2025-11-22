@@ -43,7 +43,7 @@ class VitUpscaler(nn.Module):
             self.encoder.head = nn.Identity()
 
         self.prep = nn.Conv2d(3, 3, kernel_size=3, padding=1, stride=1)
-        self.large = True if input_shape == (3, 112, 112) else False
+        self.large = False if input_shape == (3, 56, 56) else True
         # print("Large mode: ", self.large)
 
         self.entry = nn.Sequential(
@@ -179,6 +179,7 @@ if __name__ == "__main__":
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     model = VitUpscaler(input_shape = (3, 56, 56)).to(device)
+    print(model)
     x = torch.randn(1, 3, 56, 56)
     y = model(x.to(device))
     print("Input:", x.shape, "Output:", y.shape)

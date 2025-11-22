@@ -11,9 +11,9 @@ classes = ['African', 'Asian', 'Caucasian', 'Indian']
 class_count = 4
 
 train_image_path = "./dataset/RFW/train/"
-test_image_path = "./dataset/RFW/test/"
+val_image_path = "./dataset/RFW/test/"
 train_label_path = "./dataset/rfw_train_labels.csv"
-test_label_path = "./dataset/rfw_test_labels.csv"
+val_label_path = "./dataset/rfw_test_labels.csv"
 
 class RFWDataset(Dataset):
     def __init__(self, 
@@ -93,26 +93,28 @@ if __name__ == "__main__":
     train_dataset = RFWDataset(train_image_path, train_label_path)
     train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=2)
 
-    test_dataset = RFWDataset(test_image_path, test_label_path)
+    test_dataset = RFWDataset(val_image_path, val_label_path)
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True, num_workers=2)
 
     #verify all testing classes are in training set
-    test_classes = test_dataset.persons
-    train_classes = train_dataset.persons
-    missing_classes = set(test_classes) - set(train_classes)
+    test_classes = set(test_dataset.persons)
+    train_classes = set(train_dataset.persons)
+    print("Number of classes in training set:", len(train_classes))
+    print("Number of classes in testing set:", len(test_classes))
+    missing_classes = test_classes - train_classes
     if len(missing_classes) == 0:
         print("All testing classes are present in the training set.")
     else:
         print("Missing classes in training set:", missing_classes)
         print("Number of missing classes:", len(missing_classes))
 
-    #test some images
-    for sample in [9876, 9877, 9878]:
-        image, person, race, race_str = train_dataset[sample]
-        print("Sampled image shape: ", image.shape)
-        print("Sampled person ID one-hot: ", person)
-        print("Sampled race one-hot: ", race)
-        print("Sampled race string: ", race_str)
+    # #test some images
+    # for sample in [9876, 9877, 9878]:
+    #     image, person, race, race_str = train_dataset[sample]
+    #     print("Sampled image shape: ", image.shape)
+    #     print("Sampled person ID one-hot: ", person)
+    #     print("Sampled race one-hot: ", race)
+    #     print("Sampled race string: ", race_str)
 
     for image, person, race, race_str in train_dataloader:
         print("Images shape: ", image.shape)
