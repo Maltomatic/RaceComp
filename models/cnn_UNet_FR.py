@@ -2,9 +2,9 @@ import torch
 import torch.nn as nn
 import torchvision
 from torchsummary import summary
-# from models.cnn_56_bridged_unet import Resnet_upscaler as UResNet
-from cnn_56_bridged_unet import Resnet_upscaler as UResNet
-
+from models.cnn_56_bridged_unet import Resnet_upscaler as UResNet
+# from cnn_56_bridged_unet import Resnet_upscaler as UResNet
+from toolkit.ArcFacePenalty import AdditiveAngularMarginPenalty as ArcFaceLoss
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print("Availability: ", device)
@@ -26,8 +26,10 @@ class ResUnetFR(nn.Module):
             nn.Linear(2048, num_classes)
         )
 
+        self.arc = ArcFaceLoss(s=64.0, margin=0.15)
 
-    def forward(self, x):
+
+    def forward(self, x, label=None):
         x1 = self.entry(x)
         x2 = self.enc1(x1)
         x3 = self.enc2(x2)
@@ -36,6 +38,8 @@ class ResUnetFR(nn.Module):
         # print("feats shape:", feats.shape)
         out = self.classifier(feats)
         # print("final out shape:", out.shape)
+        if label is not None:
+            out = self.arc(out, label)
         return out
 # Example
 if __name__ == "__main__":

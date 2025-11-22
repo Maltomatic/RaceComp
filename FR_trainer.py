@@ -25,11 +25,9 @@ from loaders.load_rfw import classes, class_count, train_image_path, train_label
 from models.cnn_UNet_FR import ResUnetFR as UResNet
 from models.vit_FR import ViTFR as VitNet
 
-from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
-from toolkit.debugs import denormalize_imagenet
-from toolkit.criteria import psnr, ssim_simple
+from toolkit.ArcFacePenalty import AdditiveAngularMarginPenalty as ArcFaceLoss
 
-B = 32
+B = 8
 C = 3
 H = W = 224
 
@@ -37,9 +35,11 @@ H = W = 224
 TRAINING = True
 debug = False
 resume = False
+custom_load = False
+# weight_path = "checkpoints/UResNet/config_batchsize8_mb4/minority_Indian/best_overall.pt"
 training_comment = "FR training"
 
-model_idx = 2
+model_idx = 1
 # idx:
     # 0 - VitNet
     # 1 - UResNet
@@ -58,10 +58,6 @@ config_str = f"batchsize{B}_mb{microbatches}"
 #################################################
 model_names = ["VitNet", "UResNet"]
 
-nm = 1000
-
-Modelnet = VitNet(input_shape = (3, sz, sz), num_classes = nm) if model_idx == 0 else \
-           UResNet(input_shape = (3, 224, 224), num_classes = nm) 
 model_type = model_names[model_idx]
 desc_path = f"{model_type}/{config_str}/"
 desc = f"trained_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}"
@@ -99,9 +95,9 @@ def make_param_groups(model, base_lr=3e-4, dec_mult=1.0, enc_mult=0.5):
         {"params": enc_params, "lr": base_lr*enc_mult},
     ]
 
-def accumulate_by_race(bucket, race, loss, psnr_val, ssim_val):
-    b = bucket.setdefault(race, {"loss": [], "psnr": [], "ssim": []})
-    b["loss"].append(loss); b["psnr"].append(psnr_val); b["ssim"].append(ssim_val)
+def accumulate_by_race(bucket, race, loss):
+    b = bucket.setdefault(race, {"loss": []})
+    b["loss"].append(loss)
 
 def train(model, 
           train_loader, 
@@ -111,30 +107,21 @@ def train(model,
           lr=0.003,
           out_dir="checkpoints",
           microbatch_steps = 8,
-          use_perceptual = True,
-          use_ssim = True,
-          perc = 0.1,
           resume = False):
 
     os.makedirs(out_dir, exist_ok=True)
     model = model.to(device)
     scaler = torch.amp.GradScaler(device_type, enabled=True)
 
-    criterion = nn.L1Loss()
-    perc_layers = (4, 8, 12, 16)  # conv2_2, conv3_4, conv4_4, conv5_4
-    perc_weights = {4: 1.0, 8: 1.0, 12: 1.0, 16: 1.0}  # equal weighting
-    lambda_perc = perc
-    perceptual_criterion = PerceptualLossVGG19(layer_weights=perc_weights, layers=perc_layers).to(device)
-    perceptual_criterion.eval()
+    criterion = nn.CrossEntropyLoss()
 
-    best_val_ssim = -1.0
     best_val_loss = float('inf')
     global_epoch = 0
     start_epoch = 0
     resume_batch = 0
 
     if(resume):
-        svpt = torch.load('savepoints/ckpt_s0_e1_b13536.pt', weights_only=False)
+        svpt = torch.load('savepoints_FR/ckpt_s0_e1_b13536.pt', weights_only=False)
 
         print("Verifying checkpoint keys: ", svpt.keys())
         model.load_state_dict(svpt['model_state'])
@@ -194,7 +181,7 @@ def train(model,
                     print("Debug: Skipping training loop in debug mode.")
                     continue
 
-                for X_img, Y_img, labels, label_str in train_loader:  # LR, HR
+                for X_img, Y_label_1h, Y_label, Y_label_str, race, label_str in train_loader:  # LR, HR
                     if(n_batches < resume_batch and resume):
                         n_batches += 1
                         continue
@@ -209,20 +196,14 @@ def train(model,
                         print(f"Currently at stage {stage_idx}, epoch {e}, batch {n_batches}.")
                         print(f"Start epoch {start_epoch}, global epoch {global_epoch}, total epoch {total_epochs}.")
 
-                    Y_img = Y_img.to(device).float()
+                    Y_label = Y_label.to(device).long()
                     X_img = X_img.to(device).float()
 
                     with torch.amp.autocast(device_type, enabled=True):
-                        # print("Debug: Input shapes:", X_img.shape, Y_img.shape)
-                        pred = model(X_img)
-                        pixel_loss = criterion(pred, Y_img)
-                        if use_perceptual:
-                            with torch.amp.autocast(device_type, enabled = True):
-                                perc_loss = perceptual_criterion(pred, Y_img)
-                            # loss = pixel_loss + lambda_perc * perc_loss
-                            loss = perc_loss + lambda_perc * pixel_loss
-                        else:
-                            loss = pixel_loss
+                        # print("Debug: Input shapes:", X_img.shape, Y_label.shape)
+                        pred = model(X_img, Y_label)
+                        pixel_loss = criterion(pred, Y_label)
+                        loss = pixel_loss
                         loss = loss / microbatch_steps  # Scale loss for gradient accumulation
 
                     scaler.scale(loss).backward()
@@ -237,30 +218,19 @@ def train(model,
 
                         scheduler.step()
                     
-                    if n_batches % 120 == 0 and use_perceptual:
-                        print(f"pixel={pixel_loss.item():.4f}  perc={perc_loss.item():.4f}  tot={(loss.item() * microbatch_steps):.4f}")
-
-                    pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
-                    targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
                     tr["loss"] += loss.item() * microbatch_steps # unscale the loss
-                    tr["psnr"] += psnr(pred_vis, targ_vis).mean().item()
-                    tr["ssim"] += ssim_simple(pred_vis, targ_vis).mean().item()
 
                     n_batches += 1
                     if(n_batches % 200 == 1):
-                        print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
+                        print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}")
                         print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
                     if(n_batches % 2000 == 1):
                         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                            file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}  "
-                                    f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
+                            file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}\n")
 
-                print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                    f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}")
+                print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}")
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                    file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}  "
-                            f"PSNR {tr['psnr']/n_batches:.2f}  SSIM {tr['ssim']/n_batches:.4f}\n")
+                    file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}\n")
                 
                 model.eval()
                 print(f"==Validation: || time: {datetime.now().strftime("%H:%M:%S")} ==")
@@ -268,37 +238,21 @@ def train(model,
                     file.write(f"==Validation: || time: {datetime.now().strftime("%H:%M:%S")} ==\n")
                 v = defaultdict(float); n_val = 0; race_bucket = {}
                 with torch.no_grad():
-                    for X_img, Y_img, labels, label_str in val_loader:
-                        Y_img = Y_img.to(device).float()
+                    for X_img, Y_label_1h, Y_label, Y_label_str, race, label_str in val_loader:
+                        Y_label = Y_label.to(device).long()
                         X_img = X_img.to(device).float()
 
                         pred = model(X_img)
-                        val_pixel = criterion(pred, Y_img)
-                        if use_perceptual:
-                            with torch.amp.autocast(device_type, enabled = True):
-                                val_perc = perceptual_criterion(pred, Y_img)
-                            # val_loss = val_pixel + lambda_perc * val_perc
-                            val_loss = val_perc + lambda_perc * val_pixel
-                        else:
-                            val_loss = val_pixel
-
-                        pred_vis = imagenet_denorm(pred).clamp(0.0, 1.0)
-                        targ_vis = imagenet_denorm(Y_img).clamp(0.0, 1.0)
-                        v_psnr = psnr(pred_vis, targ_vis).mean().item()
-                        v_ssim = ssim_simple(pred_vis, targ_vis).mean().item()
+                        val_loss = criterion(pred, Y_label)
 
                         v["loss"] += val_loss.item()
-                        v["psnr"] += v_psnr
-                        v["ssim"] += v_ssim
                         n_val += 1
 
                         for r in label_str:
-                            accumulate_by_race(race_bucket, r, val_loss.item(), v_psnr, v_ssim)
+                            accumulate_by_race(race_bucket, r, val_loss.item())
 
                 val_loss = v["loss"]/n_val
-                val_psnr = v["psnr"]/n_val
-                val_ssim = v["ssim"]/n_val
-                print(f"           val:   loss {val_loss:.4f}  PSNR {val_psnr:.2f}  SSIM {val_ssim:.4f}")
+                print(f"           val:   loss {val_loss:.4f}")
 
                 race_summary = {}
                 for k, v in race_bucket.items():
@@ -306,39 +260,25 @@ def train(model,
                 
                 if race_summary:
                     print("           per-race (val):",
-                        "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}"
+                        "  ".join([f"{k}: Loss {vals['loss']:.3f}"
                                     for k, vals in race_summary.items()]))
                     with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                        file.write("per-race (val): " + "  ".join([f"{k}: SSIM {vals['ssim']:.3f}, PSNR {vals['psnr']:.2f}" for k, vals in race_summary.items()]))
+                        file.write("per-race (val): " + "  ".join([f"{k}: Loss {vals['loss']:.3f}" for k, vals in race_summary.items()]))
 
-                if use_ssim:
-                    if val_ssim > best_val_ssim:
-                        best_val_ssim = val_ssim
-                        ckpt = {
-                            "model": model.state_dict(),
-                            "val_loss": val_loss, "val_psnr": val_psnr, "val_ssim": val_ssim,
-                            "race_summary": race_summary,
-                            "stage": stage_idx+1, "epoch": global_epoch
-                        }
-                        if not os.path.exists(out_dir):
-                            os.makedirs(out_dir, exist_ok=True)
-                        path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
-                        torch.save(ckpt, path)
-                        print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
-                else:
-                    if val_loss < best_val_loss:
-                        best_val_loss = val_loss
-                        ckpt = {
-                            "model": model.state_dict(),
-                            "val_loss": val_loss, "val_psnr": val_psnr, "val_ssim": val_ssim,
-                            "race_summary": race_summary,
-                            "stage": stage_idx+1, "epoch": global_epoch
-                        }
-                        if not os.path.exists(out_dir):
-                            os.makedirs(out_dir, exist_ok=True)
-                        path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
-                        torch.save(ckpt, path)
-                        print(f"Saved best checkpoint → {path} (SSIM={val_ssim:.4f})")
+            
+                if val_loss < best_val_loss:
+                    best_val_loss = val_loss
+                    ckpt = {
+                        "model": model.state_dict(),
+                        "val_loss": val_loss,
+                        "race_summary": race_summary,
+                        "stage": stage_idx+1, "epoch": global_epoch
+                    }
+                    if not os.path.exists(out_dir):
+                        os.makedirs(out_dir, exist_ok=True)
+                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
+                    torch.save(ckpt, path)
+                    print(f"Saved best checkpoint → {path} (Loss={val_loss:.4f})")
             del optimizer
             del scheduler
     except:
@@ -368,7 +308,6 @@ def train(model,
             }, f'savepoints/ckpt_s{ckpt_stage}_e{ckpt_epoch}_b{ckpt_batch}.pt')
         raise
 
-        
 
 race_weights = {
     "East Asian": 1.0,
@@ -386,92 +325,82 @@ if __name__ == "__main__":
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     
-    if TRAINING:
-        torch.autograd.set_detect_anomaly(True)
-        if not os.path.exists(f"./logs/training/{desc_path}"):
-            os.makedirs(f"./logs/training/{desc_path}", exist_ok=True)
-        with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-            file.write(f"\n\n=== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} : {training_comment} ===\n")
-            file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
-            file.write(f"\nConfigs - Model: {model_type}, Batch size: {B}, Microbatch steps: {microbatches}")
+    torch.autograd.set_detect_anomaly(True)
+    if not os.path.exists(f"./logs/training/{desc_path}"):
+        os.makedirs(f"./logs/training/{desc_path}", exist_ok=True)
+    with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+        file.write(f"\n\n=== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} : {training_comment} ===\n")
+        file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
+        file.write(f"\nConfigs - Model: {model_type}, Batch size: {B}, Microbatch steps: {microbatches}")
 
-        for minority in train_list:
-            model = copy.deepcopy(Modelnet)
-            for par1, par2 in zip(model.parameters(), Modelnet.parameters()):
-                assert torch.allclose(par1, par2), "Model copy failed!"
-            #load racially biased weights with strict=False to allow partial loading
-            race_ckpt = torch.load(f"checkpoints/{model_type}/config_{config_str}/best_overall.pt", map_location=device)
+    for minority in train_list:
+        train_dataset = RFWDataset(train_image_path, train_label_path, minority=minority) if minority != "All" else \
+                        RFWDataset(train_image_path, train_label_path)
+        train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
+        
+        nm = len(set(train_dataset.persons))
+        limit_classes = set(train_dataset.minority_classes) if minority != "All" else None
+
+        Modelnet = VitNet(input_shape = (3, sz, sz), num_classes = nm) if model_idx == 0 else \
+                UResNet(input_shape = (3, 224, 224), num_classes = nm) 
+
+        val_dataset = RFWDataset(val_image_path, val_label_path, minority=minority, restrict_classes=limit_classes) if minority != "All" else \
+                        RFWDataset(val_image_path, val_label_path)
+        val_loader = DataLoader(val_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
+        # verify all val classes are in training set
+        val_classes = set(val_dataset.persons)
+        train_classes = set(train_dataset.persons)
+        missing_classes = val_classes - train_classes
+        if len(missing_classes) > 0:
+            print(f"Warning: Missing classes in training set for minority {minority}: ", missing_classes)
+            print("Skipping this minority.")
+            continue
+
+        model = copy.deepcopy(Modelnet)
+        for par1, par2 in zip(model.parameters(), Modelnet.parameters()):
+            assert torch.allclose(par1, par2), "Model copy failed!"
+        #load racially biased weights with strict=False to allow partial loading
+        if(custom_load):
+            race_ckpt = torch.load(weight_path, map_location=device)
             model.load_state_dict(race_ckpt["model"], strict = False)
-
-            model.to(device)
-            print(f"Created copy of {model_type} initialized for training.")
-
-# //// TODO from here
-            train_dataset = RFWDataset(train_image_path, train_label_path)
-            train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
-            val_dataset = RFWDataset(val_image_path, val_label_path,)
-            val_loader = DataLoader(val_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
-
-            # print("Number of training samples: ", len(train_dataset))
-            # print("Number of validation samples: ", len(val_dataset))
-            print(f"\n=== Training with minority: {minority} ===")
-            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                file.write(f"\n=== Training with minority: {minority} ===\n")
-                # file.write(f"\nNumber of training samples: {len(train_dataset)}")
-                # file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")
-            
-            print("Bootstrapping data loaders")
-            for images, src, labels, label_str in train_loader:
-                print("Batch of testing images shape: ", images.shape)
-                print("Batch of source images shape: ", src.shape)
-                print("Batch of labels shape: ", labels.shape)
-                print("Batch of label strings: ", len(label_str))
-                break
-            
-            train(
-                model,
-                train_loader,
-                val_loader,
-                stages=train_stages,
-                epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
-                lr=3e-4,
-                out_dir=f"checkpoints/{model_type}/config_{config_str}/minority_{minority.replace(" ","_")}",
-                use_perceptual= use_percep,
-                use_ssim= use_ssim,
-                microbatch_steps = microbatches,
-                perc = perc,
-                resume = resume
-            )
-
-            print(f"Finished training for minority: {minority}, releasing model from GPU.\n\n")
-            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                file.write(f"\nFinished training for minority: {minority}.\n\n")
-
-            del model
-            torch.cuda.empty_cache()
-    else:
-        model = Modelnet.to(device)
-        print("Load model from checkpoint for inference/testing")
-        ckpt_path = f"checkpoints_{model_type}/minority_{tgt_race.replace(" ", "_")}/best_stage{test_stage}_epoch{test_epoch}.pt"
-        ckpt = torch.load(ckpt_path, map_location=device)
-        model.load_state_dict(ckpt["model"], strict = False)
-        model.eval()
-        print(f"Loaded model from {ckpt_path} | val SSIM: {ckpt['val_ssim']:.4f}")
+        
         model.to(device)
+        print(f"Created copy of {model_type} initialized for training.")
 
-        #load test sample image
-        testpath = "test_112.png"
-        img_file = f".//test_files//{testpath}"
-        image = decode_image(img_file, mode = "RGB")
-        transform = torchvision.transforms.Compose([
-            torchvision.transforms.Resize((112, 112)),
-            torchvision.transforms.ConvertImageDtype(torch.float),
-            torchvision.transforms.Normalize(mean=IMAGENET_MEAN, std=IMAGENET_STD)
-        ])
-        input_img = transform(image).unsqueeze(0).to(device)  # add batch dimension
-        with torch.no_grad():
-            pred = model(input_img)
-            # save output image
-        output_img = denormalize_imagenet(pred.squeeze(0).cpu()).permute(1, 2, 0).numpy()
-        output_pil = Image.fromarray(output_img)
-        output_pil.save(f"test_files/outputs/{model_type}_output_{testpath}.png")
+        print("Number of training samples: ", len(train_dataset))
+        print("Number of validation samples: ", len(val_dataset))
+
+        print(f"\n=== Training with minority: {minority} ===")
+        with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+            file.write(f"\n=== Training with minority: {minority} ===\n")
+            # file.write(f"\nNumber of training samples: {len(train_dataset)}")
+            # file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")
+        
+        print("Bootstrapping data loaders")
+        for images, class1h, class_int, class_str, race, race_str in train_loader:
+            print("Batch of testing images shape: ", images.shape)
+            print("Batch of testing person IDs one-hot shape: ", class1h.shape)
+            print("Batch of testing person IDs length: ", len(class_int))
+            print("Batch of testing person IDs string length: ", len(class_str))
+            print("Batch of testing races one-hot shape: ", race.shape)
+            print("Batch of testing races string length: ", len(race_str))
+            break
+        
+        train(
+            model,
+            train_loader,
+            val_loader,
+            stages=train_stages,
+            epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
+            lr=3e-4,
+            out_dir=f"checkpoints_FR/{model_type}/config_{config_str}/minority_{minority.replace(" ","_")}",
+            microbatch_steps = microbatches,
+            resume = resume
+        )
+
+        print(f"Finished training for minority: {minority}, releasing model from GPU.\n\n")
+        with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+            file.write(f"\nFinished training for minority: {minority}.\n\n")
+
+        del model
+        torch.cuda.empty_cache()

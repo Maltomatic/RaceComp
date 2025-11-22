@@ -40,7 +40,7 @@ from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
 from toolkit.debugs import denormalize_imagenet
 from toolkit.criteria import psnr, ssim_simple
 
-B = 32
+B = 48
 C = 3
 H_l = W_l = 112
 H_h = W_h = 224
@@ -48,17 +48,17 @@ H_h = W_h = 224
 #################### configs #################### 
 TRAINING = True
 debug = False
-resume = True
+resume = False
 training_comment = "UResNet formal train"
 
-model_idx = 2
+model_idx = 0
 # idx:
     # 0 - VitNet
     # 1 - InterNet
     # 2 - UResNet
     # 3 - TrimResNet
-# train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
-train_list = ["East Asian", "Indian"]
+train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
+# train_list = ["Indian"]
 use_percep = True
 perc = 0.1
 use_ssim = False

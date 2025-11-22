@@ -21,13 +21,53 @@ class RFWDataset(Dataset):
                  label_path, 
                  transform=None, 
                  normalize=True,
-                 hr_size=(400, 400)):
+                 minority = None,
+                 test_minority = None,
+                 restrict_classes = None):
         self.image_path = image_path
         df = pd.read_csv(label_path)
         self.file_path = df["file"]
         self.persons = df["person"]
         self.race_raw = df["race"]
 
+        self.minority = minority
+        # keep only 2 per class for minority race
+        if(self.minority is not None):
+            print(f"Trimming with minority: {self.minority}")
+            minority_race = self.minority
+            df_minority = df[df["race"] == minority_race]
+            #keep only 1/3 of classes in minority race
+            unique_persons = df_minority["person"].unique()
+            self.minority_classes = np.random.choice(unique_persons, size=len(unique_persons)//3, replace=False)
+            df_minority = df_minority[df_minority["person"].isin(self.minority_classes)]
+            # for each person in minority, keep only 2 images, or 1 if only 1 exists
+            df_minority = df_minority.groupby("person").head(2)
+            # print(df_minority)
+            df_majority = df[df["race"] != minority_race]
+            df = pd.concat([df_minority, df_majority], ignore_index=True)
+            self.file_path = df["file"]
+            self.persons = df["person"]
+            self.race_raw = df["race"]
+        # provided list of persons, keep only those classes in the minority race, and adjust ratio of other races
+        elif(restrict_classes is not None):
+            print(f"Restricting testing to {len(restrict_classes)} per race as limited by minority: {test_minority}")
+            df_test_minority = df[df["race"] == test_minority]
+            df_restricted = df_test_minority[df_test_minority["person"].isin(restrict_classes)]
+            # keep only length equal to restricted classes for each race, random sample all but minority race
+            limited_len = len(restrict_classes)
+            df_limited = pd.DataFrame()
+            for race in classes:
+                if race == test_minority:
+                    continue
+                df_race = df[df["race"] == race]
+                df_race_sampled = df_race.sample(n=limited_len)
+                df_limited = pd.concat([df_limited, df_race_sampled], ignore_index=True)
+            df_limited = pd.concat([df_limited, df_restricted], ignore_index=True)
+
+            self.file_path = df_limited["file"]
+            self.persons = df_limited["person"]
+            self.race_raw = df_limited["race"]        
+        
         cat_race = pd.Categorical(self.race_raw, categories = classes, ordered = True)
         idx_race = torch.tensor(pd.Series(cat_race.codes).values).long()
         # One-hot encode the labels
@@ -38,6 +78,7 @@ class RFWDataset(Dataset):
         cat_person = pd.Categorical(self.persons)
         idx_person = torch.tensor(pd.Series(cat_person.codes).values).long()
         self.labels_person = torch.nn.functional.one_hot(idx_person, num_classes=len(cat_person.categories))
+        self.labels_person_int = idx_person
 
         norm = None
         if(normalize):
@@ -83,17 +124,23 @@ class RFWDataset(Dataset):
 
         race_str = self.race_raw.iloc[img_idx]
         race = self.labels_race[img_idx]
-        person = self.labels_person[img_idx]
+        person_raw = self.persons.iloc[img_idx]
+        person1h = self.labels_person[img_idx]
+        person_int = self.labels_person_int[img_idx]
         image = self.norm(image)
         image = self.transform(image)
 
-        return image, person, race, race_str
+        return image, person1h, person_int, person_raw, race, race_str
 
 if __name__ == "__main__":
-    train_dataset = RFWDataset(train_image_path, train_label_path)
+    minority = 'African'
+    train_dataset = RFWDataset(train_image_path, train_label_path, minority = minority)
     train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=2)
 
-    test_dataset = RFWDataset(val_image_path, val_label_path)
+    print("Minority class size:", len(train_dataset.minority_classes))
+    limit_classes = train_dataset.minority_classes
+
+    test_dataset = RFWDataset(val_image_path, val_label_path, restrict_classes = limit_classes, test_minority = minority)
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True, num_workers=2)
 
     #verify all testing classes are in training set
@@ -101,6 +148,8 @@ if __name__ == "__main__":
     train_classes = set(train_dataset.persons)
     print("Number of classes in training set:", len(train_classes))
     print("Number of classes in testing set:", len(test_classes))
+    print("Number of samples in training set:", len(train_dataset))
+    print("Number of samples in testing set:", len(test_dataset))
     missing_classes = test_classes - train_classes
     if len(missing_classes) == 0:
         print("All testing classes are present in the training set.")
@@ -116,10 +165,15 @@ if __name__ == "__main__":
     #     print("Sampled race one-hot: ", race)
     #     print("Sampled race string: ", race_str)
 
-    for image, person, race, race_str in train_dataloader:
+    for image, person1h, person_int, person_raw, race, race_str in train_dataloader:
         print("Images shape: ", image.shape)
-        print("Batch of person IDs shape: ", person.shape)
+        print("Batch of person IDs shape: ", person1h.shape)
+        print("Length of person IDs int: ", len(person_int))
+        print("Length for batch of person strings: ", len(person_raw))
         print("Batch of races shape: ", race.shape)
         print("Length for batch of race strings: ", len(race_str))
+
+        print("Check two person IDs to see if different:")
+        print("Person 1:", person_int[0], "Person 2:", person_int[1])
         break
     

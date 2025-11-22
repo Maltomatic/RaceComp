@@ -1,0 +1,5 @@
+
+
+=== 2025-11-22 13:17:57 : FR training ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: VitNet, Batch size: 8, Microbatch steps: 4
