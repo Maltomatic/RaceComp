@@ -397,6 +397,7 @@ if __name__ == "__main__":
             microbatch_steps = microbatches,
             resume = resume
         )
+        resume = False
 
         print(f"Finished training for minority: {minority}, releasing model from GPU.\n\n")
         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:

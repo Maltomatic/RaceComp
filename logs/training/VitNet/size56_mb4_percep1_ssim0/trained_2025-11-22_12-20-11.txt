@@ -11,3 +11,26 @@ Configs - Model: VitNet, Image Size: 56, Batch size: 48, Microbatch steps: 4, Us
 Batch 001 at time 12:21:16 | train: loss 15.7878  PSNR 11.16  SSIM 0.0249
 Batch 2001 at time 12:55:07 | train: loss 13.9577  PSNR 11.73  SSIM 0.0259
 Batch 4001 at time 13:27:29 | train: loss 13.6626  PSNR 11.79  SSIM 0.0264
+Batch 6001 at time 14:01:42 | train: loss 13.5079  PSNR 11.84  SSIM 0.0272
+Batch 8001 at time 14:48:13 | train: loss 13.2089  PSNR 12.00  SSIM 0.0472
+Batch 10001 at time 15:34:07 | train: loss 12.5609  PSNR 12.64  SSIM 0.1482
+Epoch 001 | train: loss 12.3098  PSNR 12.93  SSIM 0.1898
+==Validation: || time: 15:53:33 ==
+per-race (val): Southeast Asian: SSIM 0.699, PSNR 16.76  White: SSIM 0.699, PSNR 16.75  East Asian: SSIM 0.699, PSNR 16.76  Black: SSIM 0.699, PSNR 16.77  Middle Eastern: SSIM 0.699, PSNR 16.76  Indian: SSIM 0.699, PSNR 16.77  Latino_Hispanic: SSIM 0.699, PSNR 16.76
+--- Epoch 2 || time: 16:02:08 --- 
+Batch 001 at time 16:03:03 | train: loss 9.4195  PSNR 16.27  SSIM 0.6869
+Batch 2001 at time 16:48:09 | train: loss 8.9367  PSNR 17.79  SSIM 0.7571
+Batch 4001 at time 17:34:39 | train: loss 8.7516  PSNR 18.11  SSIM 0.7769
+Batch 6001 at time 18:21:14 | train: loss 8.6091  PSNR 18.37  SSIM 0.7923
+Batch 8001 at time 19:06:18 | train: loss 8.5049  PSNR 18.63  SSIM 0.8053
+Batch 10001 at time 19:52:08 | train: loss 8.4360  PSNR 18.84  SSIM 0.8149
+Epoch 002 | train: loss 8.4128  PSNR 18.90  SSIM 0.8180
+==Validation: || time: 20:11:43 ==
+per-race (val): Middle Eastern: SSIM 0.855, PSNR 19.66  Black: SSIM 0.854, PSNR 19.68  White: SSIM 0.854, PSNR 19.66  Southeast Asian: SSIM 0.854, PSNR 19.67  East Asian: SSIM 0.855, PSNR 19.66  Indian: SSIM 0.854, PSNR 19.68  Latino_Hispanic: SSIM 0.855, PSNR 19.66
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 3 || time: 20:19:47 --- 
+Batch 001 at time 20:20:43 | train: loss 8.0043  PSNR 19.98  SSIM 0.8531
+Batch 2001 at time 20:54:50 | train: loss 8.0845  PSNR 20.44  SSIM 0.8785
+Batch 4001 at time 21:35:27 | train: loss 7.9875  PSNR 20.98  SSIM 0.8930
+Batch 6001 at time 22:13:33 | train: loss 7.9095  PSNR 21.34  SSIM 0.9021
