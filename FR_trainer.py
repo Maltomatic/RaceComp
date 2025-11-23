@@ -27,7 +27,7 @@ from models.vit_FR import ViTFR as VitNet
 
 from toolkit.ArcFacePenalty import AdditiveAngularMarginPenalty as ArcFaceLoss
 
-B = 32
+B = 48
 C = 3
 H = W = 224
 
@@ -36,7 +36,7 @@ TRAINING = True
 debug = False
 resume = False
 custom_load = True
-weight_path = "checkpoints/unet_FR_base.pt"
+weight_path = "best_overall.pt"
 training_comment = "FR training"
 
 model_idx = 1
@@ -352,7 +352,7 @@ if __name__ == "__main__":
         Modelnet = VitNet(input_shape = (3, sz, sz), num_classes = nm) if model_idx == 0 else \
                 UResNet(input_shape = (3, 224, 224), num_classes = nm) 
 
-        val_dataset = RFWDataset(val_image_path, val_label_path, minority=minority, restrict_classes=limit_classes) if minority != "All" else \
+        val_dataset = RFWDataset(val_image_path, val_label_path, restrict_classes=limit_classes, test_minority=minority) if minority != "All" else \
                         RFWDataset(val_image_path, val_label_path)
         val_loader = DataLoader(val_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
         # verify all val classes are in training set
@@ -405,7 +405,6 @@ if __name__ == "__main__":
             microbatch_steps = microbatches,
             resume = resume
         )
-        resume = False
 
         print(f"Finished training for minority: {minority}, releasing model from GPU.\n\n")
         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
