@@ -27,7 +27,7 @@ from models.vit_FR import ViTFR as VitNet
 
 from toolkit.ArcFacePenalty import AdditiveAngularMarginPenalty as ArcFaceLoss
 
-B = 8
+B = 32
 C = 3
 H = W = 224
 
@@ -35,8 +35,8 @@ H = W = 224
 TRAINING = True
 debug = False
 resume = False
-custom_load = False
-# weight_path = "checkpoints/UResNet/config_batchsize8_mb4/minority_Indian/best_overall.pt"
+custom_load = True
+weight_path = "checkpoints/unet_FR_base.pt"
 training_comment = "FR training"
 
 model_idx = 1
@@ -60,7 +60,7 @@ model_names = ["VitNet", "UResNet"]
 
 model_type = model_names[model_idx]
 desc_path = f"{model_type}/{config_str}/"
-desc = f"trained_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}"
+desc = f"trained_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
 
 train_stages = (["enc4"], ["enc4","enc3"], ["enc4","enc3","enc2"], ["entry","enc1","enc2","enc3","enc4"]) if sz == 112\
     else (["enc3"], ["enc3","enc2"], ["enc1","enc2","enc3"])
@@ -107,11 +107,12 @@ def train(model,
           lr=0.003,
           out_dir="checkpoints",
           microbatch_steps = 8,
-          resume = False):
+          resume = False,
+          AMP_en = False):
 
     os.makedirs(out_dir, exist_ok=True)
     model = model.to(device)
-    scaler = torch.amp.GradScaler(device_type, enabled=True)
+    scaler = torch.amp.GradScaler(device_type, enabled=AMP_en)
 
     criterion = nn.CrossEntropyLoss()
 
@@ -126,7 +127,7 @@ def train(model,
         print("Verifying checkpoint keys: ", svpt.keys())
         model.load_state_dict(svpt['model_state'])
         print("Resumed model state from savepoint.")
-        print(f"Please ensure testing minority is {svpt["race"]}")
+        print(f"Please ensure testing minority is {svpt['race']}")
     try:
         for stage_idx, layer_list in enumerate(stages):
             # Unfreeze policy
@@ -155,7 +156,7 @@ def train(model,
                 global_epoch += start_epoch
                 resume_batch = svpt['batch']
                 tr = svpt['losses']
-                print(f"Resumed optimizer and scheduler state from savepoint at stage {svpt["stage"]}, epoch {global_epoch}, batch {resume_batch}.")
+                print(f"Resumed optimizer and scheduler state from savepoint at stage {svpt['stage']}, epoch {global_epoch}, batch {resume_batch}.")
             elif (resume and stage_idx < svpt["stage"]):
                 print(f"Skipping stage {stage_idx}, resume savepoint at stage {svpt['stage']}.")
                 global_epoch += total_epochs
@@ -167,10 +168,10 @@ def train(model,
 
             for e in range(start_epoch, total_epochs):
                 global_epoch += 1
-                print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime("%H:%M:%S")}---")
+                print(f"\n--- Epoch {e+1}/{total_epochs} time: {datetime.now().strftime('%H:%M:%S')}---")
                 
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                    file.write(f"\n--- Epoch {global_epoch} || time: {datetime.now().strftime("%H:%M:%S")} --- \n")
+                    file.write(f"\n--- Epoch {global_epoch} || time: {datetime.now().strftime('%H:%M:%S')} --- \n")
                 model.train()
                 if(not resume):
                     tr = defaultdict(float)
@@ -197,14 +198,20 @@ def train(model,
                         print(f"Start epoch {start_epoch}, global epoch {global_epoch}, total epoch {total_epochs}.")
 
                     Y_label = Y_label.to(device).long()
+                    if(torch.isnan(X_img).any()):
+                        print("NaN values found in input images, replacing with zeros.")
+                        X_img = torch.nan_to_num(X_img, nan=0.0, posinf=1e10, neginf=-1e10)
                     X_img = X_img.to(device).float()
 
-                    with torch.amp.autocast(device_type, enabled=True):
+                    with torch.amp.autocast(device_type, enabled=AMP_en):
                         # print("Debug: Input shapes:", X_img.shape, Y_label.shape)
                         pred = model(X_img, Y_label)
                         pixel_loss = criterion(pred, Y_label)
                         loss = pixel_loss
                         loss = loss / microbatch_steps  # Scale loss for gradient accumulation
+                        for name, param in model.named_parameters():
+                            if param.grad is not None and torch.isnan(param.grad).any():
+                                print(f"NaN gradient in {name}")
 
                     scaler.scale(loss).backward()
 
@@ -221,21 +228,22 @@ def train(model,
                     tr["loss"] += loss.item() * microbatch_steps # unscale the loss
 
                     n_batches += 1
-                    if(n_batches % 200 == 1):
+                    # if(n_batches % 1 == 0):
+                    if(n_batches % 50 == 1):
                         print(f"Batch {n_batches:03d} | train: loss {tr['loss']/n_batches:.4f}")
                         print(f"At step {n_batches + 1}, Learning rate {scheduler.get_last_lr()[0]}")
                     if(n_batches % 2000 == 1):
                         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                            file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime("%H:%M:%S")} | train: loss {tr['loss']/n_batches:.4f}\n")
+                            file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime('%H:%M:%S')} | train: loss {tr['loss']/n_batches:.4f}\n")
 
                 print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}")
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                     file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}\n")
                 
                 model.eval()
-                print(f"==Validation: || time: {datetime.now().strftime("%H:%M:%S")} ==")
+                print(f"==Validation: || time: {datetime.now().strftime('%H:%M:%S')} ==")
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                    file.write(f"==Validation: || time: {datetime.now().strftime("%H:%M:%S")} ==\n")
+                    file.write(f"==Validation: || time: {datetime.now().strftime('%H:%M:%S')} ==\n")
                 v = defaultdict(float); n_val = 0; race_bucket = {}
                 with torch.no_grad():
                     for X_img, Y_label_1h, Y_label, Y_label_str, race, label_str in val_loader:
@@ -276,7 +284,7 @@ def train(model,
                     }
                     if not os.path.exists(out_dir):
                         os.makedirs(out_dir, exist_ok=True)
-                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime("%Y-%m-%d_%H-%M-%S")}.pt")
+                    path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pt")
                     torch.save(ckpt, path)
                     print(f"Saved best checkpoint → {path} (Loss={val_loss:.4f})")
             del optimizer
@@ -329,7 +337,7 @@ if __name__ == "__main__":
     if not os.path.exists(f"./logs/training/{desc_path}"):
         os.makedirs(f"./logs/training/{desc_path}", exist_ok=True)
     with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-        file.write(f"\n\n=== {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} : {training_comment} ===\n")
+        file.write(f"\n\n=== {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} : {training_comment} ===\n")
         file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
         file.write(f"\nConfigs - Model: {model_type}, Batch size: {B}, Microbatch steps: {microbatches}")
 
@@ -393,7 +401,7 @@ if __name__ == "__main__":
             stages=train_stages,
             epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
             lr=3e-4,
-            out_dir=f"checkpoints_FR/{model_type}/config_{config_str}/minority_{minority.replace(" ","_")}",
+            out_dir=f"checkpoints_FR/{model_type}/config_{config_str}/minority_{minority.replace(' ','_')}",
             microbatch_steps = microbatches,
             resume = resume
         )
