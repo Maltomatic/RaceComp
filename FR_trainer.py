@@ -198,20 +198,28 @@ def train(model,
                         print(f"Start epoch {start_epoch}, global epoch {global_epoch}, total epoch {total_epochs}.")
 
                     Y_label = Y_label.to(device).long()
-                    if(torch.isnan(X_img).any()):
-                        print("NaN values found in input images, replacing with zeros.")
-                        X_img = torch.nan_to_num(X_img, nan=0.0, posinf=1e10, neginf=-1e10)
+                    X_img = torch.nan_to_num(X_img, nan=0.0, posinf=1e10, neginf=-1e10)
                     X_img = X_img.to(device).float()
 
                     with torch.amp.autocast(device_type, enabled=AMP_en):
                         # print("Debug: Input shapes:", X_img.shape, Y_label.shape)
-                        pred = model(X_img, Y_label)
+                        pred = model(X_img)
+                        if not torch.isfinite(pred).all():
+                            print(f"----WARNING: [Batch {n_batches}] Returneed infinite logits; skipping")
+                            optimizer.zero_grad(set_to_none=True)
+                            n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            continue
+                        pred = torch.clamp(pred, min=-100, max=100)
                         pixel_loss = criterion(pred, Y_label)
-                        loss = pixel_loss
-                        loss = loss / microbatch_steps  # Scale loss for gradient accumulation
-                        for name, param in model.named_parameters():
-                            if param.grad is not None and torch.isnan(param.grad).any():
-                                print(f"NaN gradient in {name}")
+                        loss = pixel_loss / microbatch_steps  # Scale loss for gradient accumulation
+                        # for name, param in model.named_parameters():
+                        #     if param.grad is not None and torch.isnan(param.grad).any():
+                        #         print(f"NaN gradient in {name}")
+                        if not torch.isfinite(loss).all():
+                            print(f"----WARNING: [Batch {n_batches}] Returneed infinite loss; skipping")
+                            optimizer.zero_grad(set_to_none=True)
+                            n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            continue
 
                     scaler.scale(loss).backward()
 
@@ -342,6 +350,7 @@ if __name__ == "__main__":
         file.write(f"\nConfigs - Model: {model_type}, Batch size: {B}, Microbatch steps: {microbatches}")
 
     for minority in train_list:
+        print(f"\n\nPreparing training dataset for minority: {minority}")
         train_dataset = RFWDataset(train_image_path, train_label_path, minority=minority) if minority != "All" else \
                         RFWDataset(train_image_path, train_label_path)
         train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
@@ -352,8 +361,10 @@ if __name__ == "__main__":
         Modelnet = VitNet(input_shape = (3, sz, sz), num_classes = nm) if model_idx == 0 else \
                 UResNet(input_shape = (3, 224, 224), num_classes = nm) 
 
-        val_dataset = RFWDataset(val_image_path, val_label_path, restrict_classes=limit_classes, test_minority=minority) if minority != "All" else \
-                        RFWDataset(val_image_path, val_label_path)
+        print(f"Model initialized with {nm} output classes.")
+        print("Creating validation dataset and loader.")
+        val_dataset = RFWDataset(val_image_path, val_label_path, restrict_classes=limit_classes, test_minority=minority, testing = True) if minority != "All" else \
+                        RFWDataset(val_image_path, val_label_path, testing = True)
         val_loader = DataLoader(val_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
         # verify all val classes are in training set
         val_classes = set(val_dataset.persons)
@@ -400,7 +411,7 @@ if __name__ == "__main__":
             val_loader,
             stages=train_stages,
             epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
-            lr=3e-4,
+            lr=3e-5,
             out_dir=f"checkpoints_FR/{model_type}/config_{config_str}/minority_{minority.replace(' ','_')}",
             microbatch_steps = microbatches,
             resume = resume
