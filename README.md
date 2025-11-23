@@ -11,3 +11,8 @@ This is a half-U UNet super resolution model with ResNet50 as the encoder backbo
 
 ## Data structure
 The FairFace dataset should be implemented in the structure shown in ```training_data_structure.jpg```. Reference ```load.py``` to see how the data is loaded and what the resulting data structure may be like. ```data_testbed.ipynb``` allows for interactive viewing and testing of loading data.
+
+## Facial Recognition
+First download the flattened RFW dataset from this Google Drive folder: https://drive.google.com/drive/folders/17kOk3Me2C05oUcS_Siarxw89OBGtCbYY?usp=drive_link
+
+Alternatively, if using an original, unmodified RFW download, unzip it in your datasets folder. Then, run rfw_extractor.py. *Modify your src_image_path and dest_image_path accordingly*. The labels require manual filtering; repeat filenames have been fixed and sorted in rfw_cleaned_labels.csv in the datasets folder. Afterwards, run rfw_cleaner.py to set up the training and testing folders and label csv files. The cleaner file will confirm if all images have labels and if all labels have images, and vice versa. You can also then run load_rfw.py to confirm if the classes and images match up.

@@ -24,6 +24,7 @@ class RFWDataset(Dataset):
                  minority = None,
                  test_minority = None,
                  restrict_classes = None):
+        np.random.seed(42)
         self.image_path = image_path
         df = pd.read_csv(label_path)
         self.file_path = df["file"]
