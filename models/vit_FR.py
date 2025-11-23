@@ -40,8 +40,8 @@ class ViTFR(nn.Module):
         # print("feats shape:", feats.shape)
         out = self.classifier(feats)
         # print("final out shape:", out.shape)
-        if label is not None:
-            out = self.arc(out, label)
+        # if label is not None:
+        #     out = self.arc(out, label)
         return out
 
 if __name__ == "__main__":

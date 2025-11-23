@@ -198,20 +198,28 @@ def train(model,
                         print(f"Start epoch {start_epoch}, global epoch {global_epoch}, total epoch {total_epochs}.")
 
                     Y_label = Y_label.to(device).long()
-                    if(torch.isnan(X_img).any()):
-                        print("NaN values found in input images, replacing with zeros.")
-                        X_img = torch.nan_to_num(X_img, nan=0.0, posinf=1e10, neginf=-1e10)
+                    X_img = torch.nan_to_num(X_img, nan=0.0, posinf=1e10, neginf=-1e10)
                     X_img = X_img.to(device).float()
 
                     with torch.amp.autocast(device_type, enabled=AMP_en):
                         # print("Debug: Input shapes:", X_img.shape, Y_label.shape)
-                        pred = model(X_img, Y_label)
+                        pred = model(X_img)
+                        if not torch.isfinite(pred).all():
+                            print(f"----WARNING: [Batch {n_batches}] Returneed infinite logits; skipping")
+                            optimizer.zero_grad(set_to_none=True)
+                            n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            continue
+                        pred = torch.clamp(pred, min=-100, max=100)
                         pixel_loss = criterion(pred, Y_label)
-                        loss = pixel_loss
-                        loss = loss / microbatch_steps  # Scale loss for gradient accumulation
-                        for name, param in model.named_parameters():
-                            if param.grad is not None and torch.isnan(param.grad).any():
-                                print(f"NaN gradient in {name}")
+                        loss = pixel_loss / microbatch_steps  # Scale loss for gradient accumulation
+                        # for name, param in model.named_parameters():
+                        #     if param.grad is not None and torch.isnan(param.grad).any():
+                        #         print(f"NaN gradient in {name}")
+                        if not torch.isfinite(loss).all():
+                            print(f"----WARNING: [Batch {n_batches}] Returneed infinite loss; skipping")
+                            optimizer.zero_grad(set_to_none=True)
+                            n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            continue
 
                     scaler.scale(loss).backward()
 
