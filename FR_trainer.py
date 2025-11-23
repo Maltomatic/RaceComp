@@ -411,7 +411,7 @@ if __name__ == "__main__":
             val_loader,
             stages=train_stages,
             epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
-            lr=3e-4,
+            lr=3e-5,
             out_dir=f"checkpoints_FR/{model_type}/config_{config_str}/minority_{minority.replace(' ','_')}",
             microbatch_steps = microbatches,
             resume = resume
