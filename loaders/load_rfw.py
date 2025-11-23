@@ -23,7 +23,8 @@ class RFWDataset(Dataset):
                  normalize=True,
                  minority = None,
                  test_minority = None,
-                 restrict_classes = None):
+                 restrict_classes = None,
+                 testing = False):
         np.random.seed(42)
         self.image_path = image_path
         df = pd.read_csv(label_path)
@@ -33,7 +34,7 @@ class RFWDataset(Dataset):
 
         self.minority = minority
         # keep only 2 per class for minority race
-        if(self.minority is not None):
+        if(self.minority is not None and testing == False):
             print(f"Trimming with minority: {self.minority}")
             minority_race = self.minority
             df_minority = df[df["race"] == minority_race]
@@ -54,8 +55,8 @@ class RFWDataset(Dataset):
             print(f"Restricting testing to {len(restrict_classes)} per race as limited by minority: {test_minority}")
             df_test_minority = df[df["race"] == test_minority]
             df_restricted = df_test_minority[df_test_minority["person"].isin(restrict_classes)]
-            # keep only length equal to restricted classes for each race, random sample all but minority race
-            limited_len = len(restrict_classes)
+            # keep only length equal to minority classes for each race, random sample all but minority race
+            limited_len = df_restricted['person'].nunique()
             df_limited = pd.DataFrame()
             for race in classes:
                 if race == test_minority:
@@ -141,7 +142,7 @@ if __name__ == "__main__":
     print("Minority class size:", len(train_dataset.minority_classes))
     limit_classes = train_dataset.minority_classes
 
-    test_dataset = RFWDataset(val_image_path, val_label_path, restrict_classes = limit_classes, test_minority = minority)
+    test_dataset = RFWDataset(val_image_path, val_label_path, restrict_classes = limit_classes, test_minority = minority, testing = True)
     test_dataloader = DataLoader(test_dataset, batch_size=32, shuffle=True, num_workers=2)
 
     #verify all testing classes are in training set
