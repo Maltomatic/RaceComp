@@ -40,7 +40,7 @@ from toolkit.VGGPerceptionLoss import PerceptualLossVGG19
 from toolkit.debugs import denormalize_imagenet
 from toolkit.criteria import psnr, ssim_simple
 
-B = 48
+B = 32
 C = 3
 H_l = W_l = 112
 H_h = W_h = 224
@@ -48,7 +48,7 @@ H_h = W_h = 224
 #################### configs #################### 
 TRAINING = True
 debug = False
-resume = False
+resume = True
 training_comment = "UResNet formal train"
 
 model_idx = 0
@@ -57,8 +57,8 @@ model_idx = 0
     # 1 - InterNet
     # 2 - UResNet
     # 3 - TrimResNet
-train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
-# train_list = ["Indian"]
+# train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
+train_list = ["Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
 use_percep = True
 perc = 0.1
 use_ssim = False
@@ -154,7 +154,7 @@ def train(model,
     resume_batch = 0
 
     if(resume):
-        svpt = torch.load('savepoints/ckpt_s0_e1_b13536.pt', weights_only=False)
+        svpt = torch.load('savepoints/ckpt_s0_e1_b9380.pt', weights_only=False)
 
         print("Verifying checkpoint keys: ", svpt.keys())
         model.load_state_dict(svpt['model_state'])
@@ -235,6 +235,13 @@ def train(model,
                     with torch.amp.autocast(device_type, enabled=True):
                         # print("Debug: Input shapes:", X_img.shape, Y_img.shape)
                         pred = model(X_img)
+                        if not torch.isfinite(pred).all():
+                            print(f"----WARNING: [Batch {n_batches}] Returned infinite logits; skipping")
+                            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                                file.write(f"----WARNING: [Batch {n_batches}] Returned infinite logits; skipping\n")
+                            optimizer.zero_grad(set_to_none=True)
+                            n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            continue
                         pixel_loss = criterion(pred, Y_img)
                         if use_perceptual:
                             with torch.amp.autocast(device_type, enabled = True):
@@ -244,6 +251,13 @@ def train(model,
                         else:
                             loss = pixel_loss
                         loss = loss / microbatch_steps  # Scale loss for gradient accumulation
+                        if not torch.isfinite(loss).all():
+                            print(f"----WARNING: [Batch {n_batches}] Returned infinite loss; skipping")
+                            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                                file.write(f"----WARNING: [Batch {n_batches}] Returned infinite loss; skipping\n")
+                            optimizer.zero_grad(set_to_none=True)
+                            n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            continue
 
                     scaler.scale(loss).backward()
 
