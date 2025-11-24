@@ -47,7 +47,7 @@ train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern",
 # train_list = ["East Asian", "Indian"]
 microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 sz = 224 # or 56
-epoch_stages = (2, 2, 2, 0)
+epoch_stages = (2, 3, 1, 0)
 
 under_represented_ratio = 0.05
 tgt_race = "All"
