@@ -25,7 +25,6 @@ class RFWDataset(Dataset):
                  test_minority = None,
                  restrict_classes = None,
                  testing = False):
-        np.random.seed(42)
         self.image_path = image_path
         df = pd.read_csv(label_path)
         self.file_path = df["file"]
@@ -72,15 +71,11 @@ class RFWDataset(Dataset):
         
         cat_race = pd.Categorical(self.race_raw, categories = classes, ordered = True)
         idx_race = torch.tensor(pd.Series(cat_race.codes).values).long()
-        # One-hot encode the labels
+        # One-hot encode the race label
         self.labels_race = torch.nn.functional.one_hot(idx_race, num_classes=class_count)
-        #print(self.labels.shape)
-        #print(self.labels)
-
-        cat_person = pd.Categorical(self.persons)
-        idx_person = torch.tensor(pd.Series(cat_person.codes).values).long()
-        self.labels_person = torch.nn.functional.one_hot(idx_person, num_classes=len(cat_person.categories))
-        self.labels_person_int = idx_person
+        
+        # class (person) label as int
+        self.labels_person_int = df['label_idx'].values
 
         norm = None
         if(normalize):
@@ -94,14 +89,17 @@ class RFWDataset(Dataset):
             transform = torchvision.transforms.Resize((224,224))
         self.transform = transform
         self.norm = norm
-        self.augs = [
-            None,
-            torchvision.transforms.RandomHorizontalFlip(),
-            torchvision.transforms.RandomVerticalFlip(),
-            torchvision.transforms.RandomRotation(degrees=30),
-            torchvision.transforms.RandomPerspective(),
-            torchvision.transforms.RandomAffine(degrees=0, translate=(0.2,0.2))
-        ]
+        if(testing):
+            self.augs = [None]  # no augmentations during testing
+        else:
+            self.augs = [
+                None,
+                torchvision.transforms.RandomHorizontalFlip(),
+                torchvision.transforms.RandomVerticalFlip(),
+                torchvision.transforms.RandomRotation(degrees=30),
+                torchvision.transforms.RandomPerspective(),
+                torchvision.transforms.RandomAffine(degrees=0, translate=(0.2,0.2))
+            ]
         #verify size of each race
         print("Class distribution in RFW dataset:")
         print(self.race_raw.value_counts())
@@ -127,12 +125,11 @@ class RFWDataset(Dataset):
         race_str = self.race_raw.iloc[img_idx]
         race = self.labels_race[img_idx]
         person_raw = self.persons.iloc[img_idx]
-        person1h = self.labels_person[img_idx]
         person_int = self.labels_person_int[img_idx]
         image = self.norm(image)
         image = self.transform(image)
 
-        return image, person1h, person_int, person_raw, race, race_str
+        return image, person_int, person_raw, race, race_str
 
 if __name__ == "__main__":
     minority = 'African'
@@ -159,17 +156,17 @@ if __name__ == "__main__":
         print("Missing classes in training set:", missing_classes)
         print("Number of missing classes:", len(missing_classes))
 
-    # #test some images
-    # for sample in [9876, 9877, 9878]:
-    #     image, person, race, race_str = train_dataset[sample]
-    #     print("Sampled image shape: ", image.shape)
-    #     print("Sampled person ID one-hot: ", person)
-    #     print("Sampled race one-hot: ", race)
-    #     print("Sampled race string: ", race_str)
+    #test some images
+    for sample in [9876, 9877, 9878, 123, 343]:
+        image, personID, person_str, race, race_str = train_dataset[sample]
+        print("Sampled image shape: ", image.shape)
+        print("Sampled person ID: ", personID)
+        print("Sampled person string: ", person_str)
+        print("Sampled race one-hot: ", race)
+        print("Sampled race string: ", race_str)
 
-    for image, person1h, person_int, person_raw, race, race_str in train_dataloader:
+    for image, person_int, person_raw, race, race_str in train_dataloader:
         print("Images shape: ", image.shape)
-        print("Batch of person IDs shape: ", person1h.shape)
         print("Length of person IDs int: ", len(person_int))
         print("Length for batch of person strings: ", len(person_raw))
         print("Batch of races shape: ", race.shape)

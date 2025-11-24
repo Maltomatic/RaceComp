@@ -47,7 +47,7 @@ train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern",
 # train_list = ["East Asian", "Indian"]
 microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 sz = 224 # or 56
-epoch_stages = (2, 2, 0, 0)
+epoch_stages = (2, 2, 2, 0)
 
 under_represented_ratio = 0.05
 tgt_race = "All"
@@ -452,7 +452,7 @@ if __name__ == "__main__":
             val_loader,
             stages=train_stages,
             epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
-            lr=3e-5,
+            lr=9e-5,
             out_dir=f"checkpoints_FR/{model_type}/config_{config_str}/minority_{minority.replace(' ','_')}",
             microbatch_steps = microbatches,
             resume = resume

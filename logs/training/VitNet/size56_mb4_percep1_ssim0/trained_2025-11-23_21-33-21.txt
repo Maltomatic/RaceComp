@@ -9,3 +9,4 @@ Configs - Model: VitNet, Image Size: 56, Batch size: 32, Microbatch steps: 4, Us
 
 --- Epoch 1 || time: 21:33:53 --- 
 Batch 10001 at time 21:46:58 | train: loss 12.4034  PSNR 12.87  SSIM 0.1993
+Batch 12001 at time 22:13:26 | train: loss 11.8331  PSNR 13.85  SSIM 0.3036
