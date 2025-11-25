@@ -7,8 +7,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision.io import decode_image
 from torch.utils.data import WeightedRandomSampler
 
-classes = ['African', 'Asian', 'Caucasian', 'Indian']
-class_count = 4
+races = ['African', 'Asian', 'Caucasian', 'Indian']
+race_count = 4
 
 train_image_path = "./dataset/RFW/train/"
 val_image_path = "./dataset/RFW/test/"
@@ -57,7 +57,7 @@ class RFWDataset(Dataset):
             # keep only length equal to minority classes for each race, random sample all but minority race
             limited_len = df_restricted['person'].nunique()
             df_limited = pd.DataFrame()
-            for race in classes:
+            for race in races:
                 if race == test_minority:
                     continue
                 df_race = df[df["race"] == race]
@@ -69,10 +69,10 @@ class RFWDataset(Dataset):
             self.persons = df_limited["person"]
             self.race_raw = df_limited["race"]        
         
-        cat_race = pd.Categorical(self.race_raw, categories = classes, ordered = True)
+        cat_race = pd.Categorical(self.race_raw, categories = races, ordered = True)
         idx_race = torch.tensor(pd.Series(cat_race.codes).values).long()
         # One-hot encode the race label
-        self.labels_race = torch.nn.functional.one_hot(idx_race, num_classes=class_count)
+        self.labels_race = torch.nn.functional.one_hot(idx_race, num_classes=race_count)
         
         # class (person) label as int
         self.labels_person_int = df['label_idx'].values

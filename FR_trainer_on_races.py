@@ -17,7 +17,6 @@ import copy
 from datetime import datetime
 from collections import defaultdict
 from torch.cuda.amp import autocast, GradScaler
-from torchvision.models import vgg19, VGG19_Weights
 import torch.nn.functional as F
 from loaders.load_rfw import RFWDataset
 from loaders.load_rfw import races, race_count, train_image_path, train_label_path, val_image_path, val_label_path
@@ -25,11 +24,10 @@ from loaders.load_rfw import races, race_count, train_image_path, train_label_pa
 from models.cnn_UNet_FR import ResUnetFR as UResNet
 from models.vit_FR import ViTFR as VitNet
 
-from toolkit.ArcFacePenalty import AdditiveAngularMarginPenalty as ArcFaceLoss
-
 B = 32
 C = 3
 H = W = 224
+race_count = 4  # race classification: 4 classes (African, Asian, Caucasian, Indian)  <<< COMMENT
 
 #################### configs #################### 
 TRAINING = True
@@ -37,16 +35,21 @@ debug = False
 resume = False
 custom_load = False
 weight_path = "checkpoints/unet_FR_base.pt"
-training_comment = "FR training"
+training_comment = "FR ViT training on RFW (Lawrance Colab run)"
 
-model_idx = 1
+model_idx = 0
 # idx:
     # 0 - VitNet
     # 1 - UResNet
-train_list = ['All', 'African', 'Asian', 'Caucasian', 'Indian']
-microbatches = 1 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
+train_list = ["African", "Asian", "Caucasian", "Indian"]
+microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 sz = 224 # or 56
 epoch_stages = (3, 2, 2, 0)
+
+under_represented_ratio = 0.05
+tgt_race = "All"
+test_stage = 2
+test_epoch = 3
 
 config_str = f"batchsize{B}_mb{microbatches}"
 #################################################
@@ -94,6 +97,7 @@ def accumulate_by_race(bucket, race, loss, correct, total):
     b["loss"].append(loss)
     b["correct"] += correct
     b["total"] += total
+    
 
 def train(model, 
           train_loader, 
@@ -180,7 +184,10 @@ def train(model,
                     print("Debug: Skipping training loop in debug mode.")
                     continue
 
-                for X_img, Y_label, Y_label_str, race, race_str in train_loader:  # LR, HR
+                # unpack RFWDataset as (image, person_idx, person_raw, race_onehot, race_str)
+                for X_img, person_label, person_raw, race_tensor, race_str in train_loader:
+                    race_tensor = race_tensor.to(device)
+                    Y_label = race_tensor.argmax(dim=1).long() # convert race one-hot -> class indices (0..3)
                     if(n_batches < resume_batch and resume):
                         n_batches += 1
                         continue
@@ -195,40 +202,38 @@ def train(model,
                         print(f"Currently at stage {stage_idx}, epoch {e}, batch {n_batches}.")
                         print(f"Start epoch {start_epoch}, global epoch {global_epoch}, total epoch {total_epochs}.")
 
-                    Y_label = Y_label.to(device).long()
+                    
                     X_img = torch.nan_to_num(X_img, nan=0.0, posinf=1e10, neginf=-1e10)
                     X_img = X_img.to(device).float()
 
                     with torch.amp.autocast(device_type, enabled=AMP_en):
                         # print("Debug: Input shapes:", X_img.shape, Y_label.shape)
                         pred = model(X_img)
-                        # print("Debug: Output shape:", pred.shape)
-                        # print("Debug: Output sample logits:", pred)
                         if not torch.isfinite(pred).all():
-                            print(f"----WARNING: [Batch {n_batches}] Returned infinite logits; skipping")
+                            print(f"----WARNING: [Batch {n_batches}] Returneed infinite logits; skipping")
                             optimizer.zero_grad(set_to_none=True)
                             n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
                             continue
                         pred = torch.clamp(pred, min=-100, max=100)
-                        pixel_loss = criterion(pred, Y_label)
+                        pixel_loss = criterion(pred, Y_label)          # <<< still CE over race indices
                         loss = pixel_loss / microbatch_steps  # Scale loss for gradient accumulation
                         # for name, param in model.named_parameters():
                         #     if param.grad is not None and torch.isnan(param.grad).any():
                         #         print(f"NaN gradient in {name}")
                         if not torch.isfinite(loss).all():
-                            print(f"----WARNING: [Batch {n_batches}] Returned infinite loss; skipping")
+                            print(f"----WARNING: [Batch {n_batches}] Returneed infinite loss; skipping")
                             optimizer.zero_grad(set_to_none=True)
                             n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
                             continue
-                            
+                    
                     with torch.no_grad():
                         preds = pred.argmax(dim=1)
                         correct = (preds == Y_label).sum().item()
                         tr["correct"] += correct
                         tr["total"] += Y_label.size(0)
-                        
+
                     scaler.scale(loss).backward()
-                    
+
                     if((n_batches + 1) % microbatch_steps == 0 or (n_batches + 1) == len(train_loader)):
                         scaler.unscale_(optimizer)
                         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -263,8 +268,10 @@ def train(model,
                 v["correct"] = 0.0
                 v["total"] = 0.0
                 with torch.no_grad():
-                    for X_img, Y_label, Y_label_str, race, race_str in val_loader:
-                        Y_label = Y_label.to(device).long()
+                    for X_img, person_label, person_raw, race_tensor, race_str in val_loader:
+                        race_tensor = race_tensor.to(device)
+                        Y_label = race_tensor.argmax(dim=1).long()
+
                         X_img = X_img.to(device).float()
 
                         pred = model(X_img)
@@ -279,17 +286,21 @@ def train(model,
                         v["total"] += Y_label.size(0)
 
                         val_loss_vec = F.cross_entropy(pred, Y_label, reduction="none")
+                        # race_str is the tuple of race names
                         for i, r in enumerate(race_str):
                             loss_i = val_loss_vec[i].item()
                             correct_i = 1 if correct_vec[i].item() else 0
                             accumulate_by_race(race_bucket, r, loss_i, correct_i, 1)
 
+
                 val_loss = v["loss"]/n_val
                 val_acc = v["correct"]/v["total"] if v["total"] > 0 else 0.0
-                
+
+
                 print(f"           val:   loss {val_loss:.4f} | acc {val_acc:.4f}")
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                     file.write(f"val: loss {val_loss:.4f} | acc {val_acc:.4f}\n")   
+
 
                 race_summary = {}
                 for k, stats in race_bucket.items():
@@ -317,7 +328,6 @@ def train(model,
                                         for k, vals in race_summary.items()])
                             + "\n"
                         )
-
             
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
@@ -386,22 +396,22 @@ if __name__ == "__main__":
         file.write(f"Training on GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
         file.write(f"\nConfigs - Model: {model_type}, Batch size: {B}, Microbatch steps: {microbatches}")
 
-    all_dataset = RFWDataset(train_image_path, train_label_path)
     for minority in train_list:
         print(f"\n\nPreparing training dataset for minority: {minority}")
         train_dataset = RFWDataset(train_image_path, train_label_path, minority=minority) if minority != "All" else \
                         RFWDataset(train_image_path, train_label_path)
         train_loader = DataLoader(train_dataset, batch_size=B, shuffle=True, num_workers=8, pin_memory=True)
         
-        nm = len(set(all_dataset.persons))
+
         limit_classes = set(train_dataset.minority_classes) if minority != "All" else None
 
-        Modelnet = VitNet(input_shape = (3, sz, sz), num_classes = nm) if model_idx == 0 else \
-                UResNet(input_shape = (3, 224, 224), num_classes = nm) 
+        Modelnet = VitNet(input_shape = (3, sz, sz), num_classes = race_count) if model_idx == 0 else \
+                UResNet(input_shape = (3, 224, 224), num_classes = race_count) 
 
-        print(f"Model initialized with {nm} output classes, of which {len(set(train_dataset.persons))} are in training dataset.")
+        print(f"Model initialized with {race_count} output classes.")
         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-            file.write(f"\nModel initialized with {nm} output classes, of which {len(set(train_dataset.persons))} are in training dataset.\n")
+            file.write(f"\nModel initialized with {race_count} output classes.\n")
+        
         print("Creating validation dataset and loader.")
         val_dataset = RFWDataset(val_image_path, val_label_path, restrict_classes=limit_classes, test_minority=minority, testing = True) if minority != "All" else \
                         RFWDataset(val_image_path, val_label_path, testing = True)
@@ -412,8 +422,6 @@ if __name__ == "__main__":
         missing_classes = val_classes - train_classes
         if len(missing_classes) > 0:
             print(f"Warning: Missing classes in training set for minority {minority}: ", missing_classes)
-            with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                file.write(f"Warning: Missing classes in training set for minority {minority}: {missing_classes}\n")
             print("Skipping this minority.")
             continue
 
@@ -422,8 +430,10 @@ if __name__ == "__main__":
             assert torch.allclose(par1, par2), "Model copy failed!"
         #load racially biased weights with strict=False to allow partial loading
         if(custom_load):
+            print("loading")
             race_ckpt = torch.load(weight_path, map_location=device)
             model.load_state_dict(race_ckpt["model"], strict = False)
+            print("loaded")
         
         model.to(device)
         print(f"Created copy of {model_type} initialized for training.")
@@ -434,18 +444,16 @@ if __name__ == "__main__":
         print(f"\n=== Training with minority: {minority} ===")
         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
             file.write(f"\n=== Training with minority: {minority} ===\n")
-            # file.write(f"\nNumber of training samples: {len(train_dataset)}")
-            # file.write(f"\nNumber of validation samples: {len(val_dataset)}\n")
         
         print("Bootstrapping data loaders")
-        for images, class_int, class_str, race, race_str in train_loader:
+        for images, label_idx, person_raw, race_tensor, race_str in train_loader:
             print("Batch of testing images shape: ", images.shape)
-            print("Batch of testing person IDs length: ", len(class_int))
-            print("Batch of testing person IDs string length: ", len(class_str))
-            print("Batch of testing races one-hot shape: ", race.shape)
-            print("Batch of testing races string length: ", len(race_str))
+            print("Batch of int person labels shape: ", label_idx.shape)
+            print("Example person strings: ", person_raw[:5])
+            print("Batch of race tensor shape: ", race_tensor.shape)
+            print("Example race strings: ", race_str[:5])
             break
-        
+                
         train(
             model,
             train_loader,

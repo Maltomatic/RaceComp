@@ -1,0 +1,144 @@
+
+
+=== 2025-11-24 01:23:37 : FR training ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Batch size: 32, Microbatch steps: 1
+=== Training with minority: All ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 01:24:04 --- 
+Batch 001 at time 01:24:32 | train: loss 9.3663
+Batch 2001 at time 01:47:49 | train: loss 8.2123
+Batch 4001 at time 02:12:32 | train: loss 5.7784
+Epoch 001 | train: loss 4.4795 | acc 0.4403
+==Validation: || time: 02:27:58 ==
+val: loss 8.7876 | acc 0.0650
+per-race (val): Asian: Loss 8.207, Acc 0.082  African: Loss 9.304, Acc 0.054  Indian: Loss 8.786, Acc 0.062  Caucasian: Loss 8.760, Acc 0.065
+
+--- Epoch 2 || time: 02:29:15 --- 
+Batch 001 at time 02:29:40 | train: loss 0.1882
+Batch 2001 at time 02:53:32 | train: loss 0.1558
+Batch 4001 at time 03:19:06 | train: loss 0.1089
+Epoch 002 | train: loss 0.0886 | acc 0.9919
+==Validation: || time: 03:38:26 ==
+val: loss 9.5886 | acc 0.0725
+per-race (val): Asian: Loss 8.941, Acc 0.093  Indian: Loss 9.506, Acc 0.073  Caucasian: Loss 9.547, Acc 0.068  African: Loss 10.250, Acc 0.060
+
+--- Epoch 3 || time: 03:39:47 --- 
+Batch 001 at time 03:40:13 | train: loss 0.0046
+Batch 2001 at time 04:01:37 | train: loss 0.0174
+Batch 4001 at time 04:36:17 | train: loss 0.0161
+Epoch 003 | train: loss 0.0156 | acc 0.9993
+==Validation: || time: 05:08:10 ==
+val: loss 9.6313 | acc 0.0748
+per-race (val): Caucasian: Loss 9.617, Acc 0.068  African: Loss 10.281, Acc 0.062  Indian: Loss 9.511, Acc 0.075  Asian: Loss 9.015, Acc 0.097
+
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 4 || time: 05:11:39 --- 
+Batch 001 at time 05:13:24 | train: loss 0.0121
+Batch 2001 at time 05:54:25 | train: loss 0.0347
+Batch 4001 at time 06:33:11 | train: loss 0.0244
+Epoch 004 | train: loss 0.0197 | acc 0.9980
+==Validation: || time: 07:00:55 ==
+val: loss 10.3993 | acc 0.0790
+per-race (val): African: Loss 11.134, Acc 0.067  Indian: Loss 10.297, Acc 0.082  Caucasian: Loss 10.365, Acc 0.070  Asian: Loss 9.677, Acc 0.100
+
+--- Epoch 5 || time: 07:04:19 --- 
+Batch 001 at time 07:05:39 | train: loss 0.0035
+Batch 2001 at time 07:43:43 | train: loss 0.0033
+Batch 4001 at time 08:20:37 | train: loss 0.0029
+Epoch 005 | train: loss 0.0027 | acc 0.9999
+==Validation: || time: 08:47:18 ==
+val: loss 10.4482 | acc 0.0823
+per-race (val): Asian: Loss 9.646, Acc 0.105  Indian: Loss 10.367, Acc 0.086  Caucasian: Loss 10.432, Acc 0.074  African: Loss 11.213, Acc 0.068
+
+=== Stage 3/3 | Unfrozen: ['enc1', 'enc2', 'enc3'] ===
+
+--- Epoch 6 || time: 08:50:15 --- 
+Batch 001 at time 08:51:31 | train: loss 0.0013
+Batch 2001 at time 09:27:42 | train: loss 0.0081
+Batch 4001 at time 09:58:15 | train: loss 0.0063
+Epoch 006 | train: loss 0.0052 | acc 0.9996
+==Validation: || time: 10:13:46 ==
+val: loss 10.8080 | acc 0.0827
+per-race (val): Asian: Loss 10.001, Acc 0.108  Indian: Loss 10.743, Acc 0.082  Caucasian: Loss 10.812, Acc 0.075  African: Loss 11.538, Acc 0.070
+
+--- Epoch 7 || time: 10:15:02 --- 
+Batch 001 at time 10:15:26 | train: loss 0.0014
+Batch 2001 at time 10:47:04 | train: loss 0.0011
+Batch 4001 at time 11:23:58 | train: loss 0.0009
+Epoch 007 | train: loss 0.0009 | acc 1.0000
+==Validation: || time: 11:51:03 ==
+val: loss 10.8172 | acc 0.0855
+per-race (val): Caucasian: Loss 10.814, Acc 0.078  Asian: Loss 10.004, Acc 0.113  Indian: Loss 10.677, Acc 0.087  African: Loss 11.638, Acc 0.068
+
+Finished training for minority: All.
+
+
+=== Training with minority: African ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 11:55:56 --- 
+Batch 001 at time 11:57:18 | train: loss 9.3389
+Batch 2001 at time 12:41:01 | train: loss 7.6965
+Batch 4001 at time 13:20:02 | train: loss 5.0619
+Epoch 001 | train: loss 4.6448 | acc 0.4306
+==Validation: || time: 13:24:46 ==
+val: loss 16.8893 | acc 0.0000
+per-race (val): Indian: Loss 16.787, Acc 0.000  Asian: Loss 17.245, Acc 0.000  Caucasian: Loss 17.020, Acc 0.000  African: Loss 16.526, Acc 0.000
+
+--- Epoch 2 || time: 13:25:32 --- 
+Batch 001 at time 13:25:57 | train: loss 0.2657
+Batch 2001 at time 13:52:18 | train: loss 0.1940
+Batch 4001 at time 14:20:03 | train: loss 0.1284
+Epoch 002 | train: loss 0.1198 | acc 0.9906
+==Validation: || time: 14:24:50 ==
+val: loss 18.4502 | acc 0.0000
+per-race (val): Indian: Loss 18.187, Acc 0.000  Caucasian: Loss 18.580, Acc 0.000  African: Loss 17.776, Acc 0.000  Asian: Loss 19.243, Acc 0.000
+
+--- Epoch 3 || time: 14:25:23 --- 
+Batch 001 at time 14:25:57 | train: loss 0.0374
+Batch 2001 at time 15:05:33 | train: loss 0.0228
+Batch 4001 at time 15:44:49 | train: loss 0.0212
+Epoch 003 | train: loss 0.0210 | acc 0.9992
+==Validation: || time: 15:49:38 ==
+val: loss 18.8368 | acc 0.0000
+per-race (val): Indian: Loss 18.590, Acc 0.000  Asian: Loss 19.583, Acc 0.000  Caucasian: Loss 18.878, Acc 0.000  African: Loss 18.248, Acc 0.000
+
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 4 || time: 15:50:21 --- 
+Batch 001 at time 15:50:46 | train: loss 0.0137
+Batch 2001 at time 16:16:43 | train: loss 0.0385
+Batch 4001 at time 16:45:28 | train: loss 0.0255
+Epoch 004 | train: loss 0.0237 | acc 0.9980
+==Validation: || time: 16:51:09 ==
+val: loss 19.8460 | acc 0.0000
+per-race (val): Indian: Loss 19.497, Acc 0.000  Caucasian: Loss 19.968, Acc 0.000  Asian: Loss 20.578, Acc 0.000  African: Loss 19.353, Acc 0.000
+
+--- Epoch 5 || time: 16:51:52 --- 
+Batch 001 at time 16:52:15 | train: loss 0.0015
+Batch 2001 at time 17:20:24 | train: loss 0.0035
+Batch 4001 at time 17:48:49 | train: loss 0.0032
+Epoch 005 | train: loss 0.0031 | acc 0.9999
+==Validation: || time: 17:57:14 ==
+val: loss 20.0242 | acc 0.0003
+per-race (val): Asian: Loss 20.728, Acc 0.000  Indian: Loss 19.481, Acc 0.000  African: Loss 19.746, Acc 0.001  Caucasian: Loss 20.112, Acc 0.000
+
+=== Stage 3/3 | Unfrozen: ['enc1', 'enc2', 'enc3'] ===
+
+--- Epoch 6 || time: 17:59:14 --- 
+Batch 001 at time 18:00:34 | train: loss 0.0008
+Batch 2001 at time 18:39:43 | train: loss 0.0081
+Batch 4001 at time 19:18:50 | train: loss 0.0058
+Epoch 006 | train: loss 0.0054 | acc 0.9996
+==Validation: || time: 19:26:59 ==
+val: loss 19.9609 | acc 0.0000
+per-race (val): Indian: Loss 19.158, Acc 0.000  Asian: Loss 20.438, Acc 0.000  Caucasian: Loss 19.736, Acc 0.000  African: Loss 20.524, Acc 0.000
+
+--- Epoch 7 || time: 19:28:54 --- 
+Batch 001 at time 19:30:09 | train: loss 0.0005
+Batch 2001 at time 20:04:30 | train: loss 0.0011
