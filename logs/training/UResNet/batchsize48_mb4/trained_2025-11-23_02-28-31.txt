@@ -1,0 +1,18 @@
+
+
+=== 2025-11-23 02:28:31 : FR training ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 5060 Laptop GPU
+Configs - Model: UResNet, Batch size: 48, Microbatch steps: 4
+=== Training with minority: All ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 02:29:47 --- 
+Batch 001 at time 02:30:59 | train: loss 9.3533
+Batch 2001 at time 02:43:44 | train: loss 9.2458
+Batch 4001 at time 02:56:24 | train: loss 9.0131
+Epoch 001 | train: loss 9.0031
+==Validation: || time: 02:56:57 ==
+per-race (val): African: Loss 9.747  Indian: Loss 9.746  Asian: Loss 9.753  Caucasian: Loss 9.749
+--- Epoch 2 || time: 03:00:09 --- 
+Batch 001 at time 03:01:11 | train: loss 8.3173
