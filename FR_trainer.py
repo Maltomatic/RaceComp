@@ -47,7 +47,7 @@ train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern",
 # train_list = ["East Asian", "Indian"]
 microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 sz = 224 # or 56
-epoch_stages = (2, 2, 0, 0)
+epoch_stages = (2, 3, 1, 0)
 
 under_represented_ratio = 0.05
 tgt_race = "All"
@@ -95,9 +95,11 @@ def make_param_groups(model, base_lr=3e-4, dec_mult=1.0, enc_mult=0.5):
         {"params": enc_params, "lr": base_lr*enc_mult},
     ]
 
-def accumulate_by_race(bucket, race, loss):
-    b = bucket.setdefault(race, {"loss": []})
+def accumulate_by_race(bucket, race, loss, correct, total):
+    b = bucket.setdefault(race, {"loss": [], "correct": 0, "total": 0})
     b["loss"].append(loss)
+    b["correct"] += correct
+    b["total"] += total
 
 def train(model, 
           train_loader, 
@@ -175,6 +177,8 @@ def train(model,
                 model.train()
                 if(not resume):
                     tr = defaultdict(float)
+                    tr["correct"] = 0.0
+                    tr["total"] = 0.0
                 optimizer.zero_grad(set_to_none=True)
                 n_batches = 0
 
@@ -220,9 +224,15 @@ def train(model,
                             optimizer.zero_grad(set_to_none=True)
                             n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
                             continue
-
+                            
+                    with torch.no_grad():
+                        preds = pred.argmax(dim=1)
+                        correct = (preds == Y_label).sum().item()
+                        tr["correct"] += correct
+                        tr["total"] += Y_label.size(0)
+                        
                     scaler.scale(loss).backward()
-
+                    
                     if((n_batches + 1) % microbatch_steps == 0 or (n_batches + 1) == len(train_loader)):
                         scaler.unscale_(optimizer)
                         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
@@ -243,16 +253,19 @@ def train(model,
                     if(n_batches % 2000 == 1):
                         with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                             file.write(f"Batch {n_batches:03d} at time {datetime.now().strftime('%H:%M:%S')} | train: loss {tr['loss']/n_batches:.4f}\n")
-
-                print(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}")
+                train_loss = tr["loss"] / n_batches
+                train_acc = tr["correct"] / tr["total"] if tr["total"] > 0 else 0.0
+                print(f"Epoch {global_epoch:03d} | train: loss {train_loss:.4f} | acc {train_acc:.4f}")
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                    file.write(f"Epoch {global_epoch:03d} | train: loss {tr['loss']/n_batches:.4f}\n")
+                    file.write(f"Epoch {global_epoch:03d} | train: loss {train_loss:.4f} | acc {train_acc:.4f}\n")
                 
                 model.eval()
                 print(f"==Validation: || time: {datetime.now().strftime('%H:%M:%S')} ==")
                 with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
                     file.write(f"==Validation: || time: {datetime.now().strftime('%H:%M:%S')} ==\n")
                 v = defaultdict(float); n_val = 0; race_bucket = {}
+                v["correct"] = 0.0
+                v["total"] = 0.0
                 with torch.no_grad():
                     for X_img, Y_label_1h, Y_label, Y_label_str, race, label_str in val_loader:
                         Y_label = Y_label.to(device).long()
@@ -264,22 +277,50 @@ def train(model,
                         v["loss"] += val_loss.item()
                         n_val += 1
 
-                        for r in label_str:
-                            accumulate_by_race(race_bucket, r, val_loss.item())
+                        preds = pred.argmax(dim=1)
+                        correct_vec = (preds == Y_label)
+                        v["correct"] += correct_vec.sum().item()
+                        v["total"] += Y_label.size(0)
+
+                        val_loss_vec = F.cross_entropy(pred, Y_label, reduction="none")
+                        for i, r in enumerate(label_str):
+                            loss_i = val_loss_vec[i].item()
+                            correct_i = 1 if correct_vec[i].item() else 0
+                            accumulate_by_race(race_bucket, r, loss_i, correct_i, 1)
 
                 val_loss = v["loss"]/n_val
-                print(f"           val:   loss {val_loss:.4f}")
+                val_acc = v["correct"]/v["total"] if v["total"] > 0 else 0.0
+                
+                print(f"           val:   loss {val_loss:.4f} | acc {val_acc:.4f}")
+                with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
+                    file.write(f"val: loss {val_loss:.4f} | acc {val_acc:.4f}\n")   
 
                 race_summary = {}
-                for k, v in race_bucket.items():
-                    race_summary[k] = {m: float(np.mean(vals)) if len(vals)>0 else float('nan') for m, vals in v.items()}
-                
+                for k, stats in race_bucket.items():
+                    loss_list = stats["loss"]
+                    total = stats["total"]
+                    correct = stats["correct"]
+
+                    race_loss = float(np.mean(loss_list)) if len(loss_list) > 0 else float("nan")
+                    race_acc = float(correct / total) if total > 0 else float("nan")
+
+                    race_summary[k] = {
+                        "loss": race_loss,
+                        "acc": race_acc,
+                    }
+
                 if race_summary:
                     print("           per-race (val):",
-                        "  ".join([f"{k}: Loss {vals['loss']:.3f}"
+                        "  ".join([f"{k}: Loss {vals['loss']:.3f}, Acc {vals['acc']:.3f}"
                                     for k, vals in race_summary.items()]))
+
                     with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
-                        file.write("per-race (val): " + "  ".join([f"{k}: Loss {vals['loss']:.3f}" for k, vals in race_summary.items()]))
+                        file.write(
+                            "per-race (val): "
+                            + "  ".join([f"{k}: Loss {vals['loss']:.3f}, Acc {vals['acc']:.3f}"
+                                        for k, vals in race_summary.items()])
+                            + "\n"
+                        )
 
             
                 if val_loss < best_val_loss:
@@ -411,7 +452,7 @@ if __name__ == "__main__":
             val_loader,
             stages=train_stages,
             epochs_per_stage= epoch_stages, #(2, 2, 3, 1),
-            lr=3e-5,
+            lr=9e-5,
             out_dir=f"checkpoints_FR/{model_type}/config_{config_str}/minority_{minority.replace(' ','_')}",
             microbatch_steps = microbatches,
             resume = resume

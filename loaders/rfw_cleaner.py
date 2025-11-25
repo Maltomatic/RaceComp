@@ -5,8 +5,8 @@ classes = ['African', 'Asian', 'Caucasian', 'Indian']
 class_count = 4
 
 merged_image_path = "./dataset/RFW/all/"
-merged_csv_path = "./dataset/RFW/dataset_rfw_all.csv"
-new_csv_path = "./dataset/RFW/rfw_cleaned_labels.csv"
+# merged_csv_path = "./dataset/RFW/dataset_rfw_all.csv"
+merged_csv_path = "./dataset/RFW/rfw_cleaned_labels.csv"
 
 train_image_path = "./dataset/RFW/train/"
 test_image_path = "./dataset/RFW/test/"
@@ -60,9 +60,7 @@ def move_images(df, source_path, dest_path):
             shutil.copy(src_file, dest_file)
 
 df = pd.read_csv(merged_csv_path)
-csv_cleanup(df, merged_image_path, new_csv_path)
-
-
+# csv_cleanup(df, merged_image_path, new_csv_path)
 
 full_df = pd.read_csv(merged_csv_path)
 full_df = full_df.sort_values(by=['race']).reset_index(drop=True)
@@ -88,30 +86,22 @@ if len(single_image_persons) > 0:
     print(f"Warning: Found {len(single_image_persons)} persons with only one image")
     print("Examples:", single_image_persons[:5])
 
-# take one image from 60% of ['person']s with more than one image from each race for testing, rest for training
+# take one image from all ['person']s with more than one image for testing, rest for training
 test_indices = []
-for race in classes:
-    race_df = full_df[full_df['race'] == race]
-    persons = race_df['person'].value_counts()
-    selected_persons = persons[persons > 1].index.tolist()
-    num_test_persons = int(0.7 * len(selected_persons))
-    #randome sample persons for test set
-    test_persons = pd.Series(selected_persons).sample(n=num_test_persons, random_state=42).tolist()
-    for person in test_persons:
-        person_df = race_df[race_df['person'] == person]
-        test_idx = person_df.index[0]  # take the first image of the person
-        test_indices.append(test_idx)
+
+race_df = full_df.copy()
+person_counts = race_df['person'].value_counts()
+multi_image_persons = person_counts[person_counts > 1].index.tolist()
+test_persons = multi_image_persons
+for person in test_persons:
+    person_df = race_df[race_df['person'] == person]
+    test_idx = person_df.index[0]  # take the first image of the person
+    test_indices.append(test_idx)
 test_df = full_df.loc[test_indices].reset_index(drop=True)
 train_df = full_df.drop(index=test_indices).reset_index(drop=True)
 #sort by race, person
 test_df = test_df.sort_values(by=['race', 'person']).reset_index(drop=True)
 train_df = train_df.sort_values(by=['race', 'person']).reset_index(drop=True)
-
-print(f"Final training set size: {len(train_df)}, testing set size: {len(test_df)}")
-print("Final training set class distribution:")
-print(train_df["race"].value_counts())
-print("Final testing set class distribution:")
-print(test_df["race"].value_counts())
 
 # verify all test persons are in train set
 train_persons = set(train_df['person'].tolist())
@@ -119,6 +109,10 @@ test_persons = set(test_df['person'].tolist())
 missing_persons = test_persons - train_persons
 if len(missing_persons) == 0:
     print("All test persons are present in training set.")
+    # set same index for each person in train and test set
+    person_to_index = {person: idx for idx, person in enumerate(sorted(train_persons))}
+    train_df['label_idx'] = train_df['person'].map(person_to_index)
+    test_df['label_idx'] = test_df['person'].map(person_to_index)
     train_df.to_csv(train_label_path, index=False)
     test_df.to_csv(test_label_path, index=False)
     move_images(train_df, merged_image_path, train_image_path)
@@ -126,3 +120,11 @@ if len(missing_persons) == 0:
 else:
     print(f"Warning: Found {len(missing_persons)} persons in test set not present in training set.")
     print("Examples:", list(missing_persons)[:5])
+
+print(f"Final training set size: {len(train_df)}, testing set size: {len(test_df)}")
+print(f"Number of unique persons in training set: {train_df['person'].nunique()}, testing set: {test_df['person'].nunique()}")
+
+print("Final training set number of persons per race, total images per race:")
+print(train_df.groupby('race')['person'].nunique(), train_df['race'].value_counts())
+print("Final testing set number of persons per race:")
+print(test_df.groupby('race')['person'].nunique(), test_df['race'].value_counts())
