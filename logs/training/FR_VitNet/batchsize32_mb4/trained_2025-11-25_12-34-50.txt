@@ -1,0 +1,5 @@
+
+
+=== 2025-11-25 12:34:50 : FR ViT training on RFW (Lawrance Colab run) ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 3050 Ti Laptop GPU
+Configs - Model: VitNet, Batch size: 32, Microbatch steps: 4

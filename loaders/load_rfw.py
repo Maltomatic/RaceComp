@@ -10,8 +10,8 @@ from torch.utils.data import WeightedRandomSampler
 races = ['African', 'Asian', 'Caucasian', 'Indian']
 race_count = 4
 
-train_image_path = "./dataset/RFW/train/"
-val_image_path = "./dataset/RFW/test/"
+train_image_path = val_image_path = "./dataset/RFW/train/"
+# val_image_path = "./dataset/RFW/train/"
 train_label_path = "./dataset/rfw_train_labels.csv"
 val_label_path = "./dataset/rfw_test_labels.csv"
 
