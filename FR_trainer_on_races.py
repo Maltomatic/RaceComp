@@ -24,7 +24,7 @@ from loaders.load_rfw import races, race_count, train_image_path, train_label_pa
 from models.cnn_UNet_FR import ResUnetFR as UResNet
 from models.vit_FR import ViTFR as VitNet
 
-B = 32
+B = 24
 C = 3
 H = W = 224
 # race_count = 4  # race classification: 4 classes (African, Asian, Caucasian, Indian)  <<< COMMENT
@@ -35,16 +35,16 @@ debug = False
 resume = False
 custom_load = False
 weight_path = "checkpoints/unet_FR_base.pt"
-training_comment = "FR ViT training on RFW (Lawrance Colab run)"
+training_comment = "FR ResNet training on RFW (Lawrance Colab run)"
 
-model_idx = 0
+model_idx = 1
 # idx:
     # 0 - VitNet
     # 1 - UResNet
 train_list = ["African", "Asian", "Caucasian", "Indian"]
 microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 sz = 224 # or 56
-epoch_stages = (3, 2, 2, 0)
+epoch_stages = (2, 2, 1, 0)
 
 under_represented_ratio = 0.05
 tgt_race = "All"
