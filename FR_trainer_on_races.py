@@ -27,7 +27,7 @@ from models.vit_FR import ViTFR as VitNet
 B = 32
 C = 3
 H = W = 224
-race_count = 4  # race classification: 4 classes (African, Asian, Caucasian, Indian)  <<< COMMENT
+# race_count = 4  # race classification: 4 classes (African, Asian, Caucasian, Indian)  <<< COMMENT
 
 #################### configs #################### 
 TRAINING = True
