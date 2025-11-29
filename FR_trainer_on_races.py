@@ -68,7 +68,7 @@ IMAGENET_STD  = [0.229, 0.224, 0.225]
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 device_type = "cuda" if torch.cuda.is_available() else "cpu"
 
-torch.autograd.set_detect_anomaly(True)
+torch.autograd.set_detect_anomaly(False)
 
 def imagenet_denorm(x):
     mean = x.new_tensor(IMAGENET_MEAN).view(1,-1,1,1)
@@ -109,6 +109,8 @@ def train(model,
           microbatch_steps = 8,
           resume = False,
           AMP_en = False):
+    
+    strikes = 0
 
     os.makedirs(out_dir, exist_ok=True)
     model = model.to(device)
@@ -213,6 +215,9 @@ def train(model,
                             print(f"----WARNING: [Batch {n_batches}] Returneed infinite logits; skipping")
                             optimizer.zero_grad(set_to_none=True)
                             n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            # 3 strikes
+                            torch.autograd.set_detect_anomaly(strikes < 2)
+                            strikes += 1
                             continue
                         pred = torch.clamp(pred, min=-100, max=100)
                         pixel_loss = criterion(pred, Y_label)          # <<< still CE over race indices
@@ -224,6 +229,9 @@ def train(model,
                             print(f"----WARNING: [Batch {n_batches}] Returneed infinite loss; skipping")
                             optimizer.zero_grad(set_to_none=True)
                             n_batches -= (n_batches% microbatch_steps)  # reset microbatch count
+                            # 3 strikes
+                            torch.autograd.set_detect_anomaly(strikes < 2)
+                            strikes += 1
                             continue
                     
                     with torch.no_grad():
@@ -388,7 +396,6 @@ if __name__ == "__main__":
     if(torch.cuda.is_available()):
         print(f"GPU ID: {torch.cuda.current_device()}, {torch.cuda.get_device_name(torch.cuda.current_device())}")
     
-    torch.autograd.set_detect_anomaly(True)
     if not os.path.exists(f"./logs/training/{desc_path}"):
         os.makedirs(f"./logs/training/{desc_path}", exist_ok=True)
     with open(f"logs/training/{desc_path}{desc}.txt", "a") as file:
@@ -454,6 +461,7 @@ if __name__ == "__main__":
             print("Example race strings: ", race_str[:5])
             break
                 
+        torch.autograd.set_detect_anomaly(False)
         train(
             model,
             train_loader,

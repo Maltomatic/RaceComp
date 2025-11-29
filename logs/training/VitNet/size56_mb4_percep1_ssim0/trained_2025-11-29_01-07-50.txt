@@ -1,0 +1,117 @@
+
+
+=== 2025-11-29 01:07:50 : UResNet formal train ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: VitNet, Image Size: 56, Batch size: 32, Microbatch steps: 4, Use Perceptual Loss: True, Use SSIM: False
+=== Training with minority: Latino_Hispanic ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 01:08:23 --- 
+Batch 2001 at time 01:18:06 | train: loss 13.9133  PSNR 11.91  SSIM 0.0266
+Batch 4001 at time 01:28:04 | train: loss 13.6239  PSNR 11.97  SSIM 0.0286
+Batch 6001 at time 01:38:52 | train: loss 13.4130  PSNR 12.02  SSIM 0.0436
+Batch 8001 at time 01:50:22 | train: loss 12.8190  PSNR 12.17  SSIM 0.1512
+Batch 10001 at time 02:01:51 | train: loss 12.2658  PSNR 12.56  SSIM 0.2469
+Batch 12001 at time 02:13:22 | train: loss 11.8098  PSNR 13.28  SSIM 0.3280
+Epoch 001 | train: loss 11.4572  PSNR 13.96  SSIM 0.3908
+==Validation: || time: 02:24:17 ==
+per-race (val): White: SSIM 0.800, PSNR 18.44  Latino_Hispanic: SSIM 0.800, PSNR 18.45  Black: SSIM 0.799, PSNR 18.47  Indian: SSIM 0.800, PSNR 18.48  Southeast Asian: SSIM 0.799, PSNR 18.46  Middle Eastern: SSIM 0.800, PSNR 18.46  East Asian: SSIM 0.800, PSNR 18.45
+--- Epoch 2 || time: 02:32:42 --- 
+Batch 001 at time 02:33:31 | train: loss 9.0110  PSNR 17.49  SSIM 0.8083
+Batch 2001 at time 02:44:45 | train: loss 9.0481  PSNR 18.65  SSIM 0.8062
+Batch 4001 at time 02:56:08 | train: loss 8.9636  PSNR 18.72  SSIM 0.8087
+Batch 6001 at time 03:07:40 | train: loss 8.8881  PSNR 18.78  SSIM 0.8121
+Batch 8001 at time 03:20:01 | train: loss 8.8317  PSNR 18.85  SSIM 0.8160
+Batch 10001 at time 03:31:34 | train: loss 8.7834  PSNR 18.91  SSIM 0.8195
+Batch 12001 at time 03:43:10 | train: loss 8.7476  PSNR 18.98  SSIM 0.8227
+Epoch 002 | train: loss 8.7218  PSNR 19.02  SSIM 0.8250
+==Validation: || time: 03:54:04 ==
+per-race (val): East Asian: SSIM 0.838, PSNR 19.21  White: SSIM 0.838, PSNR 19.20  Middle Eastern: SSIM 0.838, PSNR 19.20  Latino_Hispanic: SSIM 0.838, PSNR 19.20  Southeast Asian: SSIM 0.838, PSNR 19.21  Black: SSIM 0.838, PSNR 19.24  Indian: SSIM 0.838, PSNR 19.24
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 3 || time: 04:01:38 --- 
+Batch 001 at time 04:02:26 | train: loss 8.9141  PSNR 20.08  SSIM 0.8549
+Batch 2001 at time 04:13:42 | train: loss 8.5294  PSNR 19.67  SSIM 0.8516
+Batch 4001 at time 04:25:05 | train: loss 8.4025  PSNR 20.26  SSIM 0.8682
+Batch 6001 at time 04:36:28 | train: loss 8.2961  PSNR 20.71  SSIM 0.8798
+Batch 8001 at time 04:47:53 | train: loss 8.2100  PSNR 21.06  SSIM 0.8882
+Batch 10001 at time 04:59:18 | train: loss 8.1308  PSNR 21.34  SSIM 0.8945
+Batch 12001 at time 05:10:44 | train: loss 8.0623  PSNR 21.58  SSIM 0.8998
+Epoch 003 | train: loss 8.0024  PSNR 21.81  SSIM 0.9041
+==Validation: || time: 05:21:38 ==
+per-race (val): Latino_Hispanic: SSIM 0.933, PSNR 23.35  Southeast Asian: SSIM 0.933, PSNR 23.34  White: SSIM 0.933, PSNR 23.34  Middle Eastern: SSIM 0.933, PSNR 23.35  Black: SSIM 0.933, PSNR 23.35  East Asian: SSIM 0.933, PSNR 23.34  Indian: SSIM 0.933, PSNR 23.37
+--- Epoch 4 || time: 05:29:14 --- 
+Batch 001 at time 05:30:01 | train: loss 7.8398  PSNR 21.10  SSIM 0.9123
+Batch 2001 at time 05:41:16 | train: loss 7.5317  PSNR 23.62  SSIM 0.9360
+Batch 4001 at time 05:52:43 | train: loss 7.4944  PSNR 23.77  SSIM 0.9381
+Batch 6001 at time 06:04:07 | train: loss 7.4555  PSNR 23.91  SSIM 0.9397
+Batch 8001 at time 06:15:31 | train: loss 7.4360  PSNR 24.01  SSIM 0.9408
+Batch 10001 at time 06:26:55 | train: loss 7.4130  PSNR 24.10  SSIM 0.9417
+Batch 12001 at time 06:38:21 | train: loss 7.3955  PSNR 24.18  SSIM 0.9425
+Epoch 004 | train: loss 7.3854  PSNR 24.23  SSIM 0.9431
+==Validation: || time: 06:50:09 ==
+per-race (val): Middle Eastern: SSIM 0.946, PSNR 24.47  Black: SSIM 0.946, PSNR 24.47  Latino_Hispanic: SSIM 0.946, PSNR 24.45  Southeast Asian: SSIM 0.946, PSNR 24.44  East Asian: SSIM 0.946, PSNR 24.45  Indian: SSIM 0.946, PSNR 24.47  White: SSIM 0.946, PSNR 24.44
+=== Stage 3/3 | Unfrozen: ['enc1', 'enc2', 'enc3'] ===
+
+Finished training for minority: Latino_Hispanic.
+
+
+=== Training with minority: Southeast Asian ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 06:59:56 --- 
+Batch 001 at time 07:00:41 | train: loss 15.9573  PSNR 11.75  SSIM 0.0234
+Batch 2001 at time 07:12:46 | train: loss 14.0248  PSNR 11.85  SSIM 0.0260
+Batch 4001 at time 07:24:28 | train: loss 13.7396  PSNR 11.92  SSIM 0.0262
+Batch 6001 at time 07:35:56 | train: loss 13.5672  PSNR 11.99  SSIM 0.0273
+Batch 8001 at time 07:47:21 | train: loss 13.4276  PSNR 12.07  SSIM 0.0317
+Batch 10001 at time 07:58:47 | train: loss 13.0410  PSNR 12.31  SSIM 0.0718
+Batch 12001 at time 08:10:13 | train: loss 12.5960  PSNR 12.76  SSIM 0.1482
+Batch 14001 at time 08:21:43 | train: loss 12.1594  PSNR 13.27  SSIM 0.2256
+Epoch 001 | train: loss 12.0887  PSNR 13.35  SSIM 0.2375
+==Validation: || time: 08:23:47 ==
+per-race (val): White: SSIM 0.733, PSNR 16.74  East Asian: SSIM 0.733, PSNR 16.76  Latino_Hispanic: SSIM 0.733, PSNR 16.75  Middle Eastern: SSIM 0.734, PSNR 16.77  Southeast Asian: SSIM 0.733, PSNR 16.76  Indian: SSIM 0.734, PSNR 16.79  Black: SSIM 0.733, PSNR 16.79
+--- Epoch 2 || time: 08:31:19 --- 
+Batch 001 at time 08:32:06 | train: loss 9.0754  PSNR 16.96  SSIM 0.7416
+Batch 2001 at time 08:43:18 | train: loss 8.9948  PSNR 17.03  SSIM 0.7545
+Batch 4001 at time 08:54:37 | train: loss 8.8768  PSNR 17.35  SSIM 0.7716
+Batch 6001 at time 09:05:57 | train: loss 8.7698  PSNR 17.66  SSIM 0.7877
+Batch 8001 at time 09:17:17 | train: loss 8.6666  PSNR 17.95  SSIM 0.8019
+Batch 10001 at time 09:28:39 | train: loss 8.5793  PSNR 18.18  SSIM 0.8125
+Batch 12001 at time 09:39:59 | train: loss 8.5098  PSNR 18.35  SSIM 0.8205
+Batch 14001 at time 09:51:20 | train: loss 8.4576  PSNR 18.47  SSIM 0.8263
+Epoch 002 | train: loss 8.4501  PSNR 18.49  SSIM 0.8272
+==Validation: || time: 09:53:20 ==
+per-race (val): Latino_Hispanic: SSIM 0.860, PSNR 19.16  Indian: SSIM 0.861, PSNR 19.22  Black: SSIM 0.860, PSNR 19.20  Middle Eastern: SSIM 0.860, PSNR 19.17  White: SSIM 0.860, PSNR 19.15  Southeast Asian: SSIM 0.860, PSNR 19.17  East Asian: SSIM 0.860, PSNR 19.17
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 3 || time: 10:00:52 --- 
+Batch 001 at time 10:01:40 | train: loss 8.0308  PSNR 19.56  SSIM 0.8633
+Batch 2001 at time 10:12:53 | train: loss 8.0578  PSNR 19.56  SSIM 0.8731
+Batch 4001 at time 10:24:14 | train: loss 7.9306  PSNR 19.76  SSIM 0.8788
+Batch 6001 at time 10:35:35 | train: loss 7.8340  PSNR 19.88  SSIM 0.8816
+Batch 8001 at time 10:46:57 | train: loss 7.7572  PSNR 20.06  SSIM 0.8854
+Batch 10001 at time 10:58:22 | train: loss 7.6977  PSNR 20.25  SSIM 0.8897
+Batch 12001 at time 11:09:51 | train: loss 7.6475  PSNR 20.46  SSIM 0.8939
+Batch 14001 at time 11:21:22 | train: loss 7.6047  PSNR 20.66  SSIM 0.8978
+Epoch 003 | train: loss 7.5979  PSNR 20.70  SSIM 0.8984
+==Validation: || time: 11:23:23 ==
+per-race (val): Latino_Hispanic: SSIM 0.925, PSNR 22.29  East Asian: SSIM 0.925, PSNR 22.28  Southeast Asian: SSIM 0.924, PSNR 22.28  Indian: SSIM 0.925, PSNR 22.30  Middle Eastern: SSIM 0.925, PSNR 22.29  White: SSIM 0.925, PSNR 22.27  Black: SSIM 0.924, PSNR 22.30
+--- Epoch 4 || time: 11:30:59 --- 
+Batch 001 at time 11:31:47 | train: loss 7.4797  PSNR 21.93  SSIM 0.9151
+Batch 2001 at time 11:43:05 | train: loss 7.2786  PSNR 22.30  SSIM 0.9267
+Batch 4001 at time 11:54:31 | train: loss 7.2655  PSNR 22.41  SSIM 0.9283
+Batch 6001 at time 12:05:59 | train: loss 7.2502  PSNR 22.51  SSIM 0.9298
+Batch 8001 at time 12:16:35 | train: loss 7.2405  PSNR 22.60  SSIM 0.9310
+Batch 10001 at time 12:26:35 | train: loss 7.2297  PSNR 22.68  SSIM 0.9319
+Batch 12001 at time 12:36:36 | train: loss 7.2216  PSNR 22.73  SSIM 0.9326
+Batch 14001 at time 12:46:36 | train: loss 7.2154  PSNR 22.78  SSIM 0.9331
+Epoch 004 | train: loss 7.2135  PSNR 22.78  SSIM 0.9332
+==Validation: || time: 12:48:28 ==
+per-race (val): Indian: SSIM 0.936, PSNR 23.04  Southeast Asian: SSIM 0.936, PSNR 23.04  White: SSIM 0.936, PSNR 23.03  Black: SSIM 0.936, PSNR 23.06  East Asian: SSIM 0.936, PSNR 23.04  Middle Eastern: SSIM 0.936, PSNR 23.04  Latino_Hispanic: SSIM 0.936, PSNR 23.03
+=== Stage 3/3 | Unfrozen: ['enc1', 'enc2', 'enc3'] ===
+
+Finished training for minority: Southeast Asian.
+
