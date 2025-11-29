@@ -58,7 +58,7 @@ model_idx = 0
     # 2 - UResNet
     # 3 - TrimResNet
 # train_list = ["All", "East Asian", "Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
-train_list = ["Indian", "Black", "White", "Middle Eastern", "Latino_Hispanic", "Southeast Asian"]
+train_list = ["Latino_Hispanic", "Southeast Asian"]
 use_percep = True
 perc = 0.1
 use_ssim = False
@@ -154,7 +154,7 @@ def train(model,
     resume_batch = 0
 
     if(resume):
-        svpt = torch.load('savepoints/ckpt_s0_e1_b9380.pt', weights_only=False)
+        svpt = torch.load('savepoints/ckpt_s0_e1_b188.pt', weights_only=False)
 
         print("Verifying checkpoint keys: ", svpt.keys())
         model.load_state_dict(svpt['model_state'])
