@@ -35,7 +35,7 @@ debug = False
 resume = False
 custom_load = False
 weight_path = "checkpoints/unet_FR_base.pt"
-training_comment = "FR ResNet training on RFW (Lawrance Colab run)"
+training_comment = "FR ResNet training on RFW (test on Acc)"
 
 model_idx = 1
 # idx:
@@ -119,6 +119,7 @@ def train(model,
     criterion = nn.CrossEntropyLoss()
 
     best_val_loss = float('inf')
+    best_val_acc = -1.0
     global_epoch = 0
     start_epoch = 0
     resume_batch = 0
@@ -337,11 +338,12 @@ def train(model,
                             + "\n"
                         )
             
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
+                if val_acc > best_val_acc:
+                    best_val_acc = val_acc
                     ckpt = {
                         "model": model.state_dict(),
                         "val_loss": val_loss,
+                        "val_acc": val_acc,
                         "race_summary": race_summary,
                         "stage": stage_idx+1, "epoch": global_epoch
                     }
@@ -349,7 +351,7 @@ def train(model,
                         os.makedirs(out_dir, exist_ok=True)
                     path = os.path.join(out_dir, f"best_stage{stage_idx+1}_epoch{global_epoch}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pt")
                     torch.save(ckpt, path)
-                    print(f"Saved best checkpoint → {path} (Loss={val_loss:.4f})")
+                    print(f"Saved best checkpoint → {path} (Loss={val_loss:.4f}), Acc={val_acc:.4f})")
             del optimizer
             del scheduler
     except:

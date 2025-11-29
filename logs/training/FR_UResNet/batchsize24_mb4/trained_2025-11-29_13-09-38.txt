@@ -1,0 +1,8 @@
+
+
+=== 2025-11-29 13:09:38 : FR ResNet training on RFW (test on Acc) ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Batch size: 24, Microbatch steps: 4
+Model initialized with 4 output classes.
+
+=== Training with minority: African ===
