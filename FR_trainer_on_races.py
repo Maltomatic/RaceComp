@@ -37,11 +37,12 @@ custom_load = False
 weight_path = "checkpoints/unet_FR_base.pt"
 training_comment = "FR ResNet training on RFW (test on Acc)"
 
-model_idx = 1
+model_idx = 0
 # idx:
     # 0 - VitNet
     # 1 - UResNet
-train_list = ["African", "Asian", "Caucasian", "Indian"]
+# train_list = ["African", "Asian", "Caucasian", "Indian"]
+train_list = ["Indian", "Caucasian", "Asian", "African"]
 microbatches = 4 # 1 for no microbatching, n for n-step microbatching, max 8 recommended to avoid gradient explosion
 sz = 224 # or 56
 epoch_stages = (2, 2, 1, 0)
