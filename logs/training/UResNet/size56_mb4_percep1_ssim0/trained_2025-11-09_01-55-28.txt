@@ -74,7 +74,3 @@ per-race (val): East Asian: SSIM 0.981, PSNR 29.34  White: SSIM 0.981, PSNR 29.3
 Epoch 004 | train: loss 4.7801  PSNR 29.84  SSIM 0.9825
 ==Validation:==
 per-race (val): East Asian: SSIM 0.983, PSNR 29.87  White: SSIM 0.983, PSNR 29.84  Latino_Hispanic: SSIM 0.983, PSNR 29.80  Southeast Asian: SSIM 0.983, PSNR 29.83  Black: SSIM 0.983, PSNR 29.91  Indian: SSIM 0.983, PSNR 29.92  Middle Eastern: SSIM 0.983, PSNR 29.88
-=== Training with minority: Black ===
-
---- Epoch 1 ---
-Batch 5121 at time 20:58:21 | train: loss 9.9384  PSNR 14.75  SSIM 0.5055

@@ -1,6 +1,0 @@
-
-
-=== 2025-11-22 22:19:43 : FR training ===
-Training on GPU ID: 0, NVIDIA GeForce RTX 5060 Laptop GPU
-Configs - Model: UResNet, Batch size: 32, Microbatch steps: 4
-=== Training with minority: All ===
