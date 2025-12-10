@@ -1,5 +1,3 @@
-
-
 === 2025-11-09 01:55:28 : vit model testing size 56 for shape ===
 Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
 Configs - Model: UResNet, Image Size: 56, === Training with minority: Southeast Asian ===
