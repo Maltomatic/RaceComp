@@ -1,0 +1,34 @@
+
+
+=== 2025-11-29 16:56:50 : FR ResNet training on RFW (test on Acc) ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Batch size: 24, Microbatch steps: 4
+Model initialized with 4 output classes.
+
+=== Training with minority: African ===
+val: loss 0.3206 | acc 0.9118
+per-race (val): Indian: Loss 0.370, Acc 0.897  African: Loss 0.239, Acc 0.943  Asian: Loss 0.320, Acc 0.920  Caucasian: Loss 0.354, Acc 0.887
+
+Finished training for minority: African.
+
+
+=== Training with minority: Asian ===
+val: loss 0.4449 | acc 0.8886
+per-race (val): African: Loss 0.121, Acc 0.964  Asian: Loss 0.977, Acc 0.778  Caucasian: Loss 0.205, Acc 0.937  Indian: Loss 0.477, Acc 0.876
+
+Finished training for minority: Asian.
+
+
+=== Training with minority: Caucasian ===
+val: loss 0.4034 | acc 0.8971
+per-race (val): Asian: Loss 0.227, Acc 0.942  Caucasian: Loss 1.061, Acc 0.740  Indian: Loss 0.232, Acc 0.928  African: Loss 0.099, Acc 0.978
+
+Finished training for minority: Caucasian.
+
+
+=== Training with minority: Indian ===
+val: loss 0.4033 | acc 0.8964
+per-race (val): African: Loss 0.046, Acc 0.986  Caucasian: Loss 0.211, Acc 0.937  Indian: Loss 1.063, Acc 0.743  Asian: Loss 0.292, Acc 0.920
+
+Finished training for minority: Indian.
+
