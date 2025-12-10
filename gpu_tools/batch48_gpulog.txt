@@ -1,0 +1,168 @@
+Timestamp   = Sat Nov  1 17:06:29 2025       
+    Temperature = 60C                     Memory      = 7896MiB / 8188MiB
+    Power       = 24W / 100W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:07:29 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 34W / 104W               Utilization = 97%
+=====================================
+Timestamp   = Sat Nov  1 17:08:29 2025       
+    Temperature = 66C                     Memory      = 7896MiB / 8188MiB
+    Power       = 38W / 99W               Utilization = 89%
+=====================================
+Timestamp   = Sat Nov  1 17:09:29 2025       
+    Temperature = 65C                     Memory      = 7896MiB / 8188MiB
+    Power       = 69W / 98W               Utilization = 93%
+=====================================
+Timestamp   = Sat Nov  1 17:10:30 2025       
+    Temperature = 63C                     Memory      = 7896MiB / 8188MiB
+    Power       = 50W / 97W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:11:30 2025       
+    Temperature = 64C                     Memory      = 7896MiB / 8188MiB
+    Power       = 54W / 100W               Utilization = 34%
+=====================================
+Timestamp   = Sat Nov  1 17:12:30 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 27W / 106W               Utilization = 94%
+=====================================
+Timestamp   = Sat Nov  1 17:13:30 2025       
+    Temperature = 64C                     Memory      = 7896MiB / 8188MiB
+    Power       = 59W / 101W               Utilization = 32%
+=====================================
+Timestamp   = Sat Nov  1 17:14:30 2025       
+    Temperature = 65C                     Memory      = 7896MiB / 8188MiB
+    Power       = 63W / 105W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:15:31 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 26W / 102W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:16:31 2025       
+    Temperature = 68C                     Memory      = 7896MiB / 8188MiB
+    Power       = 74W / 105W               Utilization = 99%
+=====================================
+Timestamp   = Sat Nov  1 17:17:31 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 26W / 105W               Utilization = 99%
+=====================================
+Timestamp   = Sat Nov  1 17:18:31 2025       
+    Temperature = 66C                     Memory      = 7896MiB / 8188MiB
+    Power       = 45W / 103W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:19:31 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 27W / 102W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:20:32 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 38W / 110W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:21:32 2025       
+    Temperature = 63C                     Memory      = 7896MiB / 8188MiB
+    Power       = 25W / 101W               Utilization = 93%
+=====================================
+Timestamp   = Sat Nov  1 17:22:32 2025       
+    Temperature = 68C                     Memory      = 7896MiB / 8188MiB
+    Power       = 34W / 101W               Utilization = 33%
+=====================================
+Timestamp   = Sat Nov  1 17:23:32 2025       
+    Temperature = 65C                     Memory      = 7896MiB / 8188MiB
+    Power       = 49W / 101W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:24:32 2025       
+    Temperature = 65C                     Memory      = 7896MiB / 8188MiB
+    Power       = 28W / 102W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:25:32 2025       
+    Temperature = 68C                     Memory      = 7896MiB / 8188MiB
+    Power       = 54W / 99W               Utilization = 97%
+=====================================
+Timestamp   = Sat Nov  1 17:26:33 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 25W / 105W               Utilization = 30%
+=====================================
+Timestamp   = Sat Nov  1 17:27:33 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 28W / 105W               Utilization = 7%
+=====================================
+Timestamp   = Sat Nov  1 17:28:33 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 24W / 101W               Utilization = 6%
+=====================================
+Timestamp   = Sat Nov  1 17:29:33 2025       
+    Temperature = 66C                     Memory      = 7896MiB / 8188MiB
+    Power       = 64W / 106W               Utilization = 92%
+=====================================
+Timestamp   = Sat Nov  1 17:30:33 2025       
+    Temperature = 63C                     Memory      = 7896MiB / 8188MiB
+    Power       = 39W / 106W               Utilization = 98%
+=====================================
+Timestamp   = Sat Nov  1 17:31:34 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 24W / 104W               Utilization = 26%
+=====================================
+Timestamp   = Sat Nov  1 17:32:34 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 25W / 104W               Utilization = 89%
+=====================================
+Timestamp   = Sat Nov  1 17:33:34 2025       
+    Temperature = 67C                     Memory      = 7896MiB / 8188MiB
+    Power       = 47W / 106W               Utilization = 87%
+=====================================
+Timestamp   = Sat Nov  1 17:34:34 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 26W / 101W               Utilization = 19%
+=====================================
+Timestamp   = Sat Nov  1 17:35:34 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 56W / 104W               Utilization = 98%
+=====================================
+Timestamp   = Sat Nov  1 17:36:35 2025       
+    Temperature = 66C                     Memory      = 7896MiB / 8188MiB
+    Power       = 39W / 100W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:37:35 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 25W / 103W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:38:35 2025       
+    Temperature = 63C                     Memory      = 7896MiB / 8188MiB
+    Power       = 27W / 102W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:39:35 2025       
+    Temperature = 63C                     Memory      = 7896MiB / 8188MiB
+    Power       = 50W / 107W               Utilization = 51%
+=====================================
+Timestamp   = Sat Nov  1 17:40:35 2025       
+    Temperature = 64C                     Memory      = 7896MiB / 8188MiB
+    Power       = 25W / 104W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:41:35 2025       
+    Temperature = 65C                     Memory      = 7896MiB / 8188MiB
+    Power       = 28W / 102W               Utilization = 98%
+=====================================
+Timestamp   = Sat Nov  1 17:42:36 2025       
+    Temperature = 63C                     Memory      = 7896MiB / 8188MiB
+    Power       = 25W / 104W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:43:36 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 41W / 103W               Utilization = 28%
+=====================================
+Timestamp   = Sat Nov  1 17:44:36 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 26W / 103W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:45:36 2025       
+    Temperature = 61C                     Memory      = 7896MiB / 8188MiB
+    Power       = 35W / 104W               Utilization = 97%
+=====================================
+Timestamp   = Sat Nov  1 17:46:36 2025       
+    Temperature = 62C                     Memory      = 7896MiB / 8188MiB
+    Power       = 25W / 102W               Utilization = 100%
+=====================================
+Timestamp   = Sat Nov  1 17:47:36 2025       
+    Temperature = 68C                     Memory      = 7896MiB / 8188MiB
+    Power       = 67W / 105W               Utilization = 91%
+=====================================

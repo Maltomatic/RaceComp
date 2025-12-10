@@ -3,8 +3,8 @@
 /SwinIR/
 /checkpoints_unet/
 /apple_fastvit/*.pth.tar
-*/*log*.txt
-*log*.txt
+# */*log*.txt
+# *log*.txt
 **/*.pth.tar
 **/*.pth
 **/*.pt

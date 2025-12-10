@@ -1,0 +1,170 @@
+
+
+=== 2025-11-09 01:55:28 : vit model testing size 56 for shape ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Image Size: 56, === Training with minority: Southeast Asian ===
+
+--- Epoch 1 ---
+Epoch 001 | train: loss 7.5096  PSNR 20.11  SSIM 0.7681
+==Validation:==
+per-race (val): East Asian: SSIM 0.952, PSNR 25.16  White: SSIM 0.951, PSNR 25.14  Latino_Hispanic: SSIM 0.952, PSNR 25.11  Southeast Asian: SSIM 0.951, PSNR 25.12  Black: SSIM 0.951, PSNR 25.21  Indian: SSIM 0.952, PSNR 25.21  Middle Eastern: SSIM 0.952, PSNR 25.16
+--- Epoch 2 ---
+Epoch 002 | train: loss 5.3831  PSNR 26.87  SSIM 0.9665
+==Validation:==
+per-race (val): East Asian: SSIM 0.971, PSNR 27.43  White: SSIM 0.971, PSNR 27.42  Latino_Hispanic: SSIM 0.971, PSNR 27.37  Southeast Asian: SSIM 0.971, PSNR 27.40  Black: SSIM 0.971, PSNR 27.49  Indian: SSIM 0.971, PSNR 27.49  Middle Eastern: SSIM 0.971, PSNR 27.44
+--- Epoch 3 ---
+Epoch 003 | train: loss 5.1088  PSNR 28.60  SSIM 0.9773
+==Validation:==
+per-race (val): East Asian: SSIM 0.981, PSNR 29.36  White: SSIM 0.981, PSNR 29.33  Latino_Hispanic: SSIM 0.981, PSNR 29.30  Southeast Asian: SSIM 0.981, PSNR 29.33  Black: SSIM 0.981, PSNR 29.40  Indian: SSIM 0.981, PSNR 29.41  Middle Eastern: SSIM 0.981, PSNR 29.37
+--- Epoch 4 ---
+Epoch 004 | train: loss 4.8053  PSNR 29.74  SSIM 0.9824
+==Validation:==
+per-race (val): East Asian: SSIM 0.983, PSNR 29.85  White: SSIM 0.983, PSNR 29.82  Latino_Hispanic: SSIM 0.983, PSNR 29.78  Southeast Asian: SSIM 0.983, PSNR 29.80  Black: SSIM 0.983, PSNR 29.86  Indian: SSIM 0.983, PSNR 29.89  Middle Eastern: SSIM 0.983, PSNR 29.84
+=== Training with minority: Latino Hispanic ===
+
+--- Epoch 1 ---
+Epoch 001 | train: loss 7.3894  PSNR 20.25  SSIM 0.7783
+==Validation:==
+per-race (val): East Asian: SSIM 0.955, PSNR 25.42  White: SSIM 0.955, PSNR 25.40  Latino_Hispanic: SSIM 0.956, PSNR 25.38  Southeast Asian: SSIM 0.954, PSNR 25.38  Black: SSIM 0.954, PSNR 25.45  Indian: SSIM 0.955, PSNR 25.46  Middle Eastern: SSIM 0.955, PSNR 25.42
+--- Epoch 2 ---
+Epoch 002 | train: loss 5.3309  PSNR 27.10  SSIM 0.9684
+==Validation:==
+per-race (val): East Asian: SSIM 0.973, PSNR 27.64  White: SSIM 0.972, PSNR 27.62  Latino_Hispanic: SSIM 0.973, PSNR 27.58  Southeast Asian: SSIM 0.972, PSNR 27.60  Black: SSIM 0.972, PSNR 27.68  Indian: SSIM 0.972, PSNR 27.68  Middle Eastern: SSIM 0.973, PSNR 27.65
+--- Epoch 3 ---
+Epoch 003 | train: loss 5.0971  PSNR 28.60  SSIM 0.9776
+==Validation:==
+per-race (val): East Asian: SSIM 0.981, PSNR 29.27  White: SSIM 0.981, PSNR 29.23  Latino_Hispanic: SSIM 0.981, PSNR 29.19  Southeast Asian: SSIM 0.981, PSNR 29.22  Black: SSIM 0.981, PSNR 29.31  Indian: SSIM 0.981, PSNR 29.32  Middle Eastern: SSIM 0.981, PSNR 29.27
+--- Epoch 4 ---
+Epoch 004 | train: loss 4.8033  PSNR 29.64  SSIM 0.9821
+==Validation:==
+per-race (val): East Asian: SSIM 0.983, PSNR 29.75  White: SSIM 0.982, PSNR 29.72  Latino_Hispanic: SSIM 0.983, PSNR 29.68  Southeast Asian: SSIM 0.982, PSNR 29.69  Black: SSIM 0.982, PSNR 29.77  Indian: SSIM 0.983, PSNR 29.79  Middle Eastern: SSIM 0.983, PSNR 29.75
+=== Training with minority: Middle Eastern ===
+
+--- Epoch 1 ---
+Epoch 001 | train: loss 7.4447  PSNR 20.24  SSIM 0.7800
+==Validation:==
+per-race (val): East Asian: SSIM 0.955, PSNR 25.37  White: SSIM 0.954, PSNR 25.34  Latino_Hispanic: SSIM 0.955, PSNR 25.32  Southeast Asian: SSIM 0.954, PSNR 25.33  Black: SSIM 0.954, PSNR 25.40  Indian: SSIM 0.954, PSNR 25.41  Middle Eastern: SSIM 0.954, PSNR 25.37
+--- Epoch 2 ---
+Epoch 002 | train: loss 5.5243  PSNR 26.57  SSIM 0.9641
+==Validation:==
+per-race (val): East Asian: SSIM 0.970, PSNR 27.25  White: SSIM 0.970, PSNR 27.23  Latino_Hispanic: SSIM 0.970, PSNR 27.19  Southeast Asian: SSIM 0.969, PSNR 27.22  Black: SSIM 0.969, PSNR 27.28  Indian: SSIM 0.970, PSNR 27.30  Middle Eastern: SSIM 0.970, PSNR 27.26
+--- Epoch 3 ---
+Epoch 003 | train: loss 5.1199  PSNR 28.57  SSIM 0.9773
+==Validation:==
+per-race (val): East Asian: SSIM 0.982, PSNR 29.49  White: SSIM 0.982, PSNR 29.45  Latino_Hispanic: SSIM 0.982, PSNR 29.42  Southeast Asian: SSIM 0.982, PSNR 29.44  Black: SSIM 0.981, PSNR 29.51  Indian: SSIM 0.982, PSNR 29.52  Middle Eastern: SSIM 0.982, PSNR 29.49
+--- Epoch 4 ---
+Epoch 004 | train: loss 4.8050  PSNR 29.78  SSIM 0.9826
+==Validation:==
+per-race (val): East Asian: SSIM 0.983, PSNR 29.91  White: SSIM 0.983, PSNR 29.87  Latino_Hispanic: SSIM 0.983, PSNR 29.84  Southeast Asian: SSIM 0.983, PSNR 29.86  Black: SSIM 0.983, PSNR 29.93  Indian: SSIM 0.983, PSNR 29.95  Middle Eastern: SSIM 0.983, PSNR 29.91
+=== Training with minority: White ===
+
+--- Epoch 1 ---
+Epoch 001 | train: loss 7.3711  PSNR 20.75  SSIM 0.7900
+==Validation:==
+per-race (val): East Asian: SSIM 0.958, PSNR 25.87  White: SSIM 0.958, PSNR 25.84  Latino_Hispanic: SSIM 0.958, PSNR 25.82  Southeast Asian: SSIM 0.957, PSNR 25.82  Black: SSIM 0.958, PSNR 25.91  Indian: SSIM 0.958, PSNR 25.91  Middle Eastern: SSIM 0.958, PSNR 25.87
+--- Epoch 2 ---
+Epoch 002 | train: loss 5.3487  PSNR 27.32  SSIM 0.9689
+==Validation:==
+per-race (val): East Asian: SSIM 0.973, PSNR 27.77  White: SSIM 0.973, PSNR 27.74  Latino_Hispanic: SSIM 0.973, PSNR 27.70  Southeast Asian: SSIM 0.973, PSNR 27.73  Black: SSIM 0.973, PSNR 27.79  Indian: SSIM 0.973, PSNR 27.81  Middle Eastern: SSIM 0.973, PSNR 27.76
+--- Epoch 3 ---
+Epoch 003 | train: loss 5.0666  PSNR 28.83  SSIM 0.9779
+==Validation:==
+per-race (val): East Asian: SSIM 0.981, PSNR 29.34  White: SSIM 0.981, PSNR 29.30  Latino_Hispanic: SSIM 0.981, PSNR 29.27  Southeast Asian: SSIM 0.981, PSNR 29.30  Black: SSIM 0.981, PSNR 29.37  Indian: SSIM 0.981, PSNR 29.40  Middle Eastern: SSIM 0.981, PSNR 29.35
+--- Epoch 4 ---
+Epoch 004 | train: loss 4.7801  PSNR 29.84  SSIM 0.9825
+==Validation:==
+per-race (val): East Asian: SSIM 0.983, PSNR 29.87  White: SSIM 0.983, PSNR 29.84  Latino_Hispanic: SSIM 0.983, PSNR 29.80  Southeast Asian: SSIM 0.983, PSNR 29.83  Black: SSIM 0.983, PSNR 29.91  Indian: SSIM 0.983, PSNR 29.92  Middle Eastern: SSIM 0.983, PSNR 29.88
+=== Training with minority: Black ===
+
+--- Epoch 1 ---
+Epoch 001 | train: loss 7.1476  PSNR 21.42  SSIM 0.8168
+==Validation:==
+per-race (val): East Asian: SSIM 0.959, PSNR 26.11  White: SSIM 0.959, PSNR 26.10  Latino_Hispanic: SSIM 0.959, PSNR 26.05  Southeast Asian: SSIM 0.958, PSNR 26.06  Black: SSIM 0.958, PSNR 26.11  Indian: SSIM 0.959, PSNR 26.14  Middle Eastern: SSIM 0.959, PSNR 26.11
+--- Epoch 2 ---
+Epoch 002 | train: loss 5.2549  PSNR 27.07  SSIM 0.9672
+==Validation:==
+per-race (val): East Asian: SSIM 0.970, PSNR 27.44  White: SSIM 0.969, PSNR 27.43  Latino_Hispanic: SSIM 0.970, PSNR 27.38  Southeast Asian: SSIM 0.969, PSNR 27.39  Black: SSIM 0.969, PSNR 27.45  Indian: SSIM 0.970, PSNR 27.47  Middle Eastern: SSIM 0.970, PSNR 27.44
+--- Epoch 3 ---
+Epoch 003 | train: loss 5.0244  PSNR 28.50  SSIM 0.9762
+==Validation:==
+per-race (val): East Asian: SSIM 0.980, PSNR 29.33  White: SSIM 0.980, PSNR 29.30  Latino_Hispanic: SSIM 0.980, PSNR 29.26  Southeast Asian: SSIM 0.980, PSNR 29.27  Black: SSIM 0.980, PSNR 29.35  Indian: SSIM 0.980, PSNR 29.35  Middle Eastern: SSIM 0.980, PSNR 29.32
+--- Epoch 4 ---
+Epoch 004 | train: loss 4.7687  PSNR 29.70  SSIM 0.9817
+==Validation:==
+per-race (val): East Asian: SSIM 0.982, PSNR 29.83  White: SSIM 0.982, PSNR 29.81  Latino_Hispanic: SSIM 0.982, PSNR 29.77  Southeast Asian: SSIM 0.982, PSNR 29.79  Black: SSIM 0.982, PSNR 29.86  Indian: SSIM 0.982, PSNR 29.87  Middle Eastern: SSIM 0.982, PSNR 29.85
+=== Training with minority: All ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 23:57:03 --- 
+Epoch 001 | train: loss 7.3050  PSNR 21.39  SSIM 0.8149
+==Validation: || time: 01:55:33 ==
+per-race (val): White: SSIM 0.954, PSNR 25.65  East Asian: SSIM 0.954, PSNR 25.65  Southeast Asian: SSIM 0.954, PSNR 25.64  Indian: SSIM 0.954, PSNR 25.66  Latino_Hispanic: SSIM 0.954, PSNR 25.64  Middle Eastern: SSIM 0.954, PSNR 25.65  Black: SSIM 0.954, PSNR 25.66
+--- Epoch 2 || time: 02:02:02 --- 
+Epoch 002 | train: loss 5.3416  PSNR 26.53  SSIM 0.9621
+==Validation: || time: 03:59:10 ==
+per-race (val): White: SSIM 0.965, PSNR 26.86  East Asian: SSIM 0.965, PSNR 26.86  Indian: SSIM 0.965, PSNR 26.87  Middle Eastern: SSIM 0.965, PSNR 26.85  Southeast Asian: SSIM 0.965, PSNR 26.85  Latino_Hispanic: SSIM 0.965, PSNR 26.85  Black: SSIM 0.965, PSNR 26.87
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 3 || time: 04:05:32 --- 
+Epoch 003 | train: loss 5.1606  PSNR 28.14  SSIM 0.9735
+==Validation: || time: 06:26:13 ==
+per-race (val): East Asian: SSIM 0.980, PSNR 29.22  Southeast Asian: SSIM 0.980, PSNR 29.20  Latino_Hispanic: SSIM 0.980, PSNR 29.22  White: SSIM 0.980, PSNR 29.22  Black: SSIM 0.980, PSNR 29.23  Middle Eastern: SSIM 0.980, PSNR 29.23  Indian: SSIM 0.980, PSNR 29.23
+--- Epoch 4 || time: 06:34:12 --- 
+Epoch 004 | train: loss 4.8488  PSNR 29.73  SSIM 0.9817
+==Validation: || time: 09:02:20 ==
+per-race (val): East Asian: SSIM 0.983, PSNR 29.93  Southeast Asian: SSIM 0.983, PSNR 29.91  Indian: SSIM 0.983, PSNR 29.92  White: SSIM 0.983, PSNR 29.90  Black: SSIM 0.983, PSNR 29.92  Latino_Hispanic: SSIM 0.983, PSNR 29.90  Middle Eastern: SSIM 0.983, PSNR 29.92
+Finished training for minority: All.
+
+
+=== 2025-11-21 21:40:26 : UResNet formal train ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Image Size: 56, === Training with minority: East Asian ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 14:31:22 --- 
+Epoch 001 | train: loss 7.9482  PSNR 19.55  SSIM 0.7687
+==Validation: || time: 21:49:19 ==
+per-race (val): Southeast Asian: SSIM 0.936, PSNR 24.18  Middle Eastern: SSIM 0.936, PSNR 24.18  White: SSIM 0.937, PSNR 24.18  Indian: SSIM 0.936, PSNR 24.18  Latino_Hispanic: SSIM 0.937, PSNR 24.18  Black: SSIM 0.936, PSNR 24.18  East Asian: SSIM 0.937, PSNR 24.19
+--- Epoch 2 || time: 21:55:38 --- 
+Epoch 002 | train: loss 5.7019  PSNR 25.22  SSIM 0.9488
+==Validation: || time: 23:55:51 ==
+per-race (val): Indian: SSIM 0.954, PSNR 25.63  White: SSIM 0.954, PSNR 25.61  Latino_Hispanic: SSIM 0.954, PSNR 25.61  Southeast Asian: SSIM 0.954, PSNR 25.61  Black: SSIM 0.954, PSNR 25.63  East Asian: SSIM 0.954, PSNR 25.62  Middle Eastern: SSIM 0.954, PSNR 25.62
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 3 || time: 00:03:33 --- 
+Epoch 003 | train: loss 5.2145  PSNR 27.64  SSIM 0.9696
+==Validation: || time: 02:13:54 ==
+per-race (val): White: SSIM 0.977, PSNR 28.60  Middle Eastern: SSIM 0.977, PSNR 28.61  Black: SSIM 0.977, PSNR 28.62  East Asian: SSIM 0.977, PSNR 28.62  Latino_Hispanic: SSIM 0.977, PSNR 28.61  Indian: SSIM 0.977, PSNR 28.62  Southeast Asian: SSIM 0.977, PSNR 28.60
+--- Epoch 4 || time: 02:21:26 --- 
+Epoch 004 | train: loss 4.8890  PSNR 29.07  SSIM 0.9783
+==Validation: || time: 04:13:08 ==
+per-race (val): White: SSIM 0.979, PSNR 29.19  Indian: SSIM 0.979, PSNR 29.22  East Asian: SSIM 0.979, PSNR 29.19  Southeast Asian: SSIM 0.979, PSNR 29.20  Black: SSIM 0.979, PSNR 29.21  Latino_Hispanic: SSIM 0.979, PSNR 29.19  Middle Eastern: SSIM 0.979, PSNR 29.20
+Finished training for minority: East Asian.
+
+
+=== Training with minority: Indian ===
+
+=== Stage 1/3 | Unfrozen: ['enc3'] ===
+
+--- Epoch 1 || time: 04:21:09 --- 
+Epoch 001 | train: loss 7.9503  PSNR 19.55  SSIM 0.7687
+==Validation: || time: 04:28:54 ==
+per-race (val): Southeast Asian: SSIM 0.936, PSNR 24.11  White: SSIM 0.936, PSNR 24.11  Latino_Hispanic: SSIM 0.936, PSNR 24.11  Indian: SSIM 0.936, PSNR 24.13  Black: SSIM 0.936, PSNR 24.12  Middle Eastern: SSIM 0.936, PSNR 24.12  East Asian: SSIM 0.936, PSNR 24.12
+--- Epoch 2 || time: 04:35:15 --- 
+Epoch 002 | train: loss 5.7085  PSNR 25.13  SSIM 0.9493
+==Validation: || time: 06:31:08 ==
+per-race (val): East Asian: SSIM 0.953, PSNR 25.54  Indian: SSIM 0.953, PSNR 25.54  Latino_Hispanic: SSIM 0.953, PSNR 25.53  Black: SSIM 0.953, PSNR 25.55  Southeast Asian: SSIM 0.953, PSNR 25.53  White: SSIM 0.953, PSNR 25.52  Middle Eastern: SSIM 0.954, PSNR 25.54
+=== Stage 2/3 | Unfrozen: ['enc3', 'enc2'] ===
+
+--- Epoch 3 || time: 06:39:37 --- 
+Epoch 003 | train: loss 5.2143  PSNR 27.49  SSIM 0.9695
+==Validation: || time: 08:50:14 ==
+per-race (val): White: SSIM 0.977, PSNR 28.57  Middle Eastern: SSIM 0.977, PSNR 28.58  Indian: SSIM 0.977, PSNR 28.58  Southeast Asian: SSIM 0.977, PSNR 28.58  Black: SSIM 0.977, PSNR 28.59  Latino_Hispanic: SSIM 0.977, PSNR 28.57  East Asian: SSIM 0.977, PSNR 28.57
+--- Epoch 4 || time: 08:57:41 --- 
+Epoch 004 | train: loss 4.8831  PSNR 28.95  SSIM 0.9784
+==Validation: || time: 11:06:44 ==
+per-race (val): White: SSIM 0.979, PSNR 29.13  Middle Eastern: SSIM 0.979, PSNR 29.14  Latino_Hispanic: SSIM 0.979, PSNR 29.14  Black: SSIM 0.979, PSNR 29.15  East Asian: SSIM 0.979, PSNR 29.14  Indian: SSIM 0.979, PSNR 29.15  Southeast Asian: SSIM 0.979, PSNR 29.14
+Finished training for minority: Indian.
+
