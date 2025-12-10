@@ -1,0 +1,3 @@
+Loaded model for All from checkpoints_UResNet/minority_All/best_stage2_epoch3.pt | val SSIM: 0.9959
+==Validation:==
+per-race (val): East Asian: SSIM 0.996, PSNR 37.08  White: SSIM 0.996, PSNR 37.04  Latino_Hispanic: SSIM 0.996, PSNR 36.95  Southeast Asian: SSIM 0.996, PSNR 36.99  Black: SSIM 0.996, PSNR 37.07  Indian: SSIM 0.996, PSNR 37.09  Middle Eastern: SSIM 0.996, PSNR 37.05
