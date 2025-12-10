@@ -1,0 +1,33 @@
+
+
+=== 2025-11-09 01:55:28 : vit model testing size 56 for shape ===
+Training on GPU ID: 0, NVIDIA GeForce RTX 4070 Laptop GPU
+Configs - Model: UResNet, Image Size: 56,
+
+=== Training with minority: Southeast Asian ===
+per-race (val): East Asian: SSIM 0.983, PSNR 29.85  White: SSIM 0.983, PSNR 29.82  Latino_Hispanic: SSIM 0.983, PSNR 29.78  Southeast Asian: SSIM 0.983, PSNR 29.80  Black: SSIM 0.983, PSNR 29.86  Indian: SSIM 0.983, PSNR 29.89  Middle Eastern: SSIM 0.983, PSNR 29.84
+
+=== Training with minority: Latino Hispanic ===
+per-race (val): East Asian: SSIM 0.983, PSNR 29.75  White: SSIM 0.982, PSNR 29.72  Latino_Hispanic: SSIM 0.983, PSNR 29.68  Southeast Asian: SSIM 0.982, PSNR 29.69  Black: SSIM 0.982, PSNR 29.77  Indian: SSIM 0.983, PSNR 29.79  Middle Eastern: SSIM 0.983, PSNR 29.75
+
+=== Training with minority: Middle Eastern ===
+per-race (val): East Asian: SSIM 0.983, PSNR 29.91  White: SSIM 0.983, PSNR 29.87  Latino_Hispanic: SSIM 0.983, PSNR 29.84  Southeast Asian: SSIM 0.983, PSNR 29.86  Black: SSIM 0.983, PSNR 29.93  Indian: SSIM 0.983, PSNR 29.95  Middle Eastern: SSIM 0.983, PSNR 29.91
+
+=== Training with minority: White ===
+per-race (val): East Asian: SSIM 0.983, PSNR 29.87  White: SSIM 0.983, PSNR 29.84  Latino_Hispanic: SSIM 0.983, PSNR 29.80  Southeast Asian: SSIM 0.983, PSNR 29.83  Black: SSIM 0.983, PSNR 29.91  Indian: SSIM 0.983, PSNR 29.92  Middle Eastern: SSIM 0.983, PSNR 29.88
+
+=== Training with minority: Black ===
+per-race (val): East Asian: SSIM 0.982, PSNR 29.83  White: SSIM 0.982, PSNR 29.81  Latino_Hispanic: SSIM 0.982, PSNR 29.77  Southeast Asian: SSIM 0.982, PSNR 29.79  Black: SSIM 0.982, PSNR 29.86  Indian: SSIM 0.982, PSNR 29.87  Middle Eastern: SSIM 0.982, PSNR 29.85
+
+=== Training with minority: All ===
+per-race (val): East Asian: SSIM 0.983, PSNR 29.93  Southeast Asian: SSIM 0.983, PSNR 29.91  Indian: SSIM 0.983, PSNR 29.92  White: SSIM 0.983, PSNR 29.90  Black: SSIM 0.983, PSNR 29.92  Latino_Hispanic: SSIM 0.983, PSNR 29.90  Middle Eastern: SSIM 0.983, PSNR 29.92
+Finished training for minority: All.
+
+=== Training with minority: East Asian ===
+per-race (val): White: SSIM 0.979, PSNR 29.19  Indian: SSIM 0.979, PSNR 29.22  East Asian: SSIM 0.979, PSNR 29.19  Southeast Asian: SSIM 0.979, PSNR 29.20  Black: SSIM 0.979, PSNR 29.21  Latino_Hispanic: SSIM 0.979, PSNR 29.19  Middle Eastern: SSIM 0.979, PSNR 29.20
+Finished training for minority: East Asian.
+
+=== Training with minority: Indian ===
+per-race (val): White: SSIM 0.979, PSNR 29.13  Middle Eastern: SSIM 0.979, PSNR 29.14  Latino_Hispanic: SSIM 0.979, PSNR 29.14  Black: SSIM 0.979, PSNR 29.15  East Asian: SSIM 0.979, PSNR 29.14  Indian: SSIM 0.979, PSNR 29.15  Southeast Asian: SSIM 0.979, PSNR 29.14
+Finished training for minority: Indian.
+
