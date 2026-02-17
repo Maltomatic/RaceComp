@@ -1,6 +1,8 @@
 # RaceComp
 Comparison of CNN and ViT for image upscaling and facial recognition tasks trained on racially biased datasets
 
+Our Paper: https://drive.google.com/file/d/15RvBXU14lqlsHpwPZFDM9LlXB_ivtMQC/view?usp=sharing
+
 ## CNNs
 
 ### ```cnn-unet.py```
