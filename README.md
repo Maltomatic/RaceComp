@@ -1,7 +1,7 @@
 # RaceComp
 Comparison of CNN and ViT for image upscaling and facial recognition tasks trained on racially biased datasets
 
-Our Paper: https://drive.google.com/file/d/15RvBXU14lqlsHpwPZFDM9LlXB_ivtMQC/view?usp=sharing
+Our Paper: [Paper](CNN_ViT_Showdown_for_Racial_Equality_in_Upscaling_and_Racial_Recognition_final.pdf)
 
 ## CNNs
 
